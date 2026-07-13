@@ -1,0 +1,41 @@
+﻿services:
+  liquibase:
+    image: liquibase/liquibase:4.24.0
+    container_name: medreminder-liquibase
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./common/src/main/resources/db:/liquibase/changelog
+      - ./common/liquibase.properties:/liquibase/liquibase.properties
+    command: 
+      - --defaultsFile=/liquibase/liquibase.properties
+      - update
+    networks:
+      - medreminder-network
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: medreminder-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: med_reminder
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - medreminder-network
+
+networks:
+  medreminder-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

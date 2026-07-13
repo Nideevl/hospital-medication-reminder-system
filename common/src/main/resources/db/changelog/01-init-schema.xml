@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="1" author="medreminder">
+        <!-- Enable UUID extension -->
+        <sql dbms="postgresql">
+            CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+        </sql>
+    </changeSet>
+
+    <changeSet id="2" author="medreminder">
+        <!-- Create hospitals table -->
+        <createTable tableName="hospitals">
+            <column name="hospital_id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="address" type="TEXT"/>
+            <column name="phone" type="VARCHAR(20)"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="3" author="medreminder">
+        <!-- Create patients table -->
+        <createTable tableName="patients">
+            <column name="patient_id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="hospital_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_patients_hospital"
+                    references="hospitals(hospital_id)"/>
+            </column>
+            <column name="first_name" type="VARCHAR(100)"/>
+            <column name="last_name" type="VARCHAR(100)"/>
+            <column name="phone_number" type="VARCHAR(20)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="location" type="VARCHAR(50)">
+                <constraints checkConstraint="location IN (''in-hospital'', ''at-home'')"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="4" author="medreminder">
+        <!-- Create medications table -->
+        <createTable tableName="medications">
+            <column name="medication_id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="patient_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_medications_patient"
+                    references="patients(patient_id)"/>
+            </column>
+            <column name="drug_name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="dosage" type="VARCHAR(100)"/>
+            <column name="frequency" type="VARCHAR(50)">
+                <constraints checkConstraint="frequency IN (''once-daily'', ''twice-daily'', ''thrice-daily'', ''custom'')"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="5" author="medreminder">
+        <!-- Create schedules table -->
+        <createTable tableName="schedules">
+            <column name="schedule_id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="medication_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_schedules_medication"
+                    references="medications(medication_id)"/>
+            </column>
+            <column name="patient_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_schedules_patient"
+                    references="patients(patient_id)"/>
+            </column>
+            <column name="scheduled_time" type="TIME"/>
+            <column name="scheduled_date" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="VARCHAR(50)">
+                <constraints checkConstraint="status IN (''pending'', ''called'', ''taken'', ''missed'')"
+                    nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="6" author="medreminder">
+        <!-- Create call_logs table -->
+        <createTable tableName="call_logs">
+            <column name="call_log_id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="schedule_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_calllogs_schedule"
+                    references="schedules(schedule_id)"/>
+            </column>
+            <column name="patient_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_calllogs_patient"
+                    references="patients(patient_id)"/>
+            </column>
+            <column name="call_status" type="VARCHAR(50)">
+                <constraints checkConstraint="call_status IN (''initiated'', ''ringing'', ''answered'', ''no-answer'', ''failed'')"/>
+            </column>
+            <column name="call_duration" type="INT"/>
+            <column name="ivr_response" type="VARCHAR(255)"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="7" author="medreminder">
+        <!-- Create escalations table -->
+        <createTable tableName="escalations">
+            <column name="escalation_id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="schedule_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_escalations_schedule"
+                    references="schedules(schedule_id)"/>
+            </column>
+            <column name="patient_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_escalations_patient"
+                    references="patients(patient_id)"/>
+            </column>
+            <column name="caretaker_phone" type="VARCHAR(20)"/>
+            <column name="sms_status" type="VARCHAR(50)">
+                <constraints checkConstraint="sms_status IN (''pending'', ''sent'', ''delivered'', ''failed'')"/>
+            </column>
+            <column name="escalation_type" type="VARCHAR(50)">
+                <constraints checkConstraint="escalation_type IN (''sms'', ''email'', ''call'')"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="8" author="medreminder">
+        <!-- Create audit_logs table -->
+        <createTable tableName="audit_logs">
+            <column name="audit_id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="event_type" type="VARCHAR(100)"/>
+            <column name="patient_id" type="UUID">
+                <constraints foreignKeyName="fk_auditlogs_patient"
+                    references="patients(patient_id)"/>
+            </column>
+            <column name="details" type="TEXT"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="9" author="medreminder">
+        <!-- Create indexes -->
+        <createIndex tableName="schedules" indexName="idx_schedules_patient_id">
+            <column name="patient_id"/>
+        </createIndex>
+
+        <createIndex tableName="schedules" indexName="idx_schedules_scheduled_date">
+            <column name="scheduled_date"/>
+        </createIndex>
+
+        <createIndex tableName="call_logs" indexName="idx_calllogs_schedule_id">
+            <column name="schedule_id"/>
+        </createIndex>
+
+        <createIndex tableName="audit_logs" indexName="idx_auditlogs_patient_id">
+            <column name="patient_id"/>
+        </createIndex>
+
+        <createIndex tableName="audit_logs" indexName="idx_auditlogs_event_type">
+            <column name="event_type"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>
