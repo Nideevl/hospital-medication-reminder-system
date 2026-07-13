@@ -1,0 +1,34 @@
+﻿spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: false
+      routes:
+        # Routes are defined programmatically in GatewayConfig.java
+        # This section is kept empty for programmatic routing
+  config:
+    import: "optional:configserver:"
+
+server:
+  port: 8080
+
+logging:
+  level:
+    com.medreminder.gateway: INFO
+    org.springframework.cloud.gateway: INFO
+    org.springframework.web: INFO
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics
+  endpoint:
+    health:
+      show-details: always
+
+# JWT Secret - Must be set via environment variable
+# JWT_SECRET: ${JWT_SECRET:}

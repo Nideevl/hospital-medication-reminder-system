@@ -1,4 +1,4 @@
-﻿package com.medreminder.gateway;
+package com.medreminder.gateway;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
