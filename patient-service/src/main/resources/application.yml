@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: patient-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/med_reminder
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+server:
+  port: 8081
+
+grpc:
+  server:
+    port: 9001
+
+logging:
+  level:
+    root: INFO
+    com.medreminder.patient: DEBUG
