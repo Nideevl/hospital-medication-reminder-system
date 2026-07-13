@@ -1,0 +1,69 @@
+syntax = "proto3";
+
+package com.medreminder.common.proto;
+
+option java_package = "com.medreminder.common.grpc";
+option java_outer_classname = "ServicesProto";
+option java_multiple_files = true;
+
+// PatientService Definitions
+service PatientService {
+    rpc GetPatientById (GetPatientByIdRequest) returns (GetPatientByIdResponse);
+    rpc GetCaregiverPhone (GetCaregiverPhoneRequest) returns (GetCaregiverPhoneResponse);
+}
+
+message GetPatientByIdRequest {
+    string patient_id = 1;
+}
+
+message GetPatientByIdResponse {
+    string patient_id = 1;
+    string first_name = 2;
+    string last_name = 3;
+    string phone_number = 4;
+    string location = 5;
+}
+
+message GetCaregiverPhoneRequest {
+    string patient_id = 1;
+}
+
+message GetCaregiverPhoneResponse {
+    string caregiver_phone = 1;
+}
+
+// ScheduleService Definitions
+service ScheduleService {
+    rpc GetSchedulesForToday (GetSchedulesRequest) returns (SchedulesResponse);
+}
+
+message GetSchedulesRequest {
+    string patient_id = 1;
+}
+
+message SchedulesResponse {
+    repeated ScheduleItem schedules = 1;
+}
+
+message ScheduleItem {
+    string schedule_id = 1;
+    string medication_id = 2;
+    string scheduled_time = 3;
+    string status = 4;
+}
+
+// CallService Definitions
+service CallService {
+    rpc UpdateCallLog (UpdateCallLogRequest) returns (UpdateCallLogResponse);
+}
+
+message UpdateCallLogRequest {
+    string call_log_id = 1;
+    string call_status = 2;
+    string ivr_response = 3;
+}
+
+message UpdateCallLogResponse {
+    bool success = 1;
+    string message = 2;
+}
