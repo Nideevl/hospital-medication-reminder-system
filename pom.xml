@@ -14,18 +14,21 @@
 
     <properties>
         <java.version>21</java.version>
-        <spring-boot.version>3.2.0</spring-boot.version>
-        <spring-cloud.version>2023.0.0</spring-cloud.version>
+        <spring-boot.version>4.0.7</spring-boot.version>
+        <spring-cloud.version>2024.0.0</spring-cloud.version>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <grpc.version>1.59.0</grpc.version>
+        <protobuf.version>3.24.0</protobuf.version>
+        <lombok.version>1.18.30</lombok.version>
     </properties>
 
     <modules>
         <module>common</module>
         <module>api-gateway</module>
-        <module>patient-service</module>
         <module>schedule-service</module>
+        <module>patient-service</module>
         <module>call-service</module>
         <module>escalation-service</module>
         <module>report-service</module>
@@ -34,6 +37,7 @@
     </modules>
 
     <dependencyManagement>
+
         <dependencies>
             <dependency>
                 <groupId>org.springframework.boot</groupId>
@@ -46,6 +50,13 @@
                 <groupId>org.springframework.cloud</groupId>
                 <artifactId>spring-cloud-dependencies</artifactId>
                 <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>bom</artifactId>
+                <version>2.25.0</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -73,6 +84,18 @@
                         <source>21</source>
                         <target>21</target>
                     </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <version>${spring-boot.version}</version>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>repackage</goal>
+                            </goals>
+                        </execution>
+                    </executions>
                 </plugin>
             </plugins>
         </pluginManagement>

@@ -7,8 +7,8 @@
         locator:
           enabled: false
       routes:
-        # Routes are defined programmatically in GatewayConfig.java
-        # This section is kept empty for programmatic routing
+      # Routes are defined programmatically in GatewayConfig.java
+      # This section is kept empty for programmatic routing
   config:
     import: "optional:configserver:"
 
