@@ -1,6 +1,6 @@
 # Hospital Medication Reminder System
 
-A distributed medication reminder platform built with Spring Boot microservices, demonstrating enterprise-grade architecture for healthcare systems handling **400K daily medication reminders** across multiple hospitals with event-driven communication and real-time compliance tracking.
+A distributed medication reminder platform built with Spring Boot microservices , demonstrating enterprise-grade architecture for healthcare systems handling **400K daily medication reminders** across multiple hospitals with event-driven communication and real-time compliance tracking.
 
 ---
 
