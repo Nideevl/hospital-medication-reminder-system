@@ -1,0 +1,35 @@
+spring:
+  application:
+    name: call-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/med_reminder
+    username: postgres
+    password: postgres
+    hikari:
+      maximum-pool-size: 20
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+  kafka:
+    bootstrap-servers: localhost:9092
+
+server:
+  port: 8083
+
+logging:
+  level:
+    root: INFO
+    com.medreminder: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus
+  metrics:
+    export:
+      prometheus:
+        enabled: true
