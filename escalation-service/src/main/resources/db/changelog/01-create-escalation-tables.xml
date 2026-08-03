@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.0.xsd">
+
+    <changeSet id="01-create-escalation-tables" author="system">
+        <comment>Create escalations table</comment>
+
+        <!-- Create escalations table -->
+        <createTable tableName="escalations">
+            <column name="escalation_id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="patient_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="schedule_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="escalation_type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="escalation_level" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="escalated_to" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="escalation_time" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="resolved_time" type="TIMESTAMP"/>
+            <column name="status" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="outcome" type="VARCHAR(255)"/>
+            <column name="notes" type="TEXT"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- Create indexes -->
+        <createIndex tableName="escalations" indexName="idx_escalations_patient_id">
+            <column name="patient_id"/>
+        </createIndex>
+        <createIndex tableName="escalations" indexName="idx_escalations_schedule_id">
+            <column name="schedule_id"/>
+        </createIndex>
+        <createIndex tableName="escalations" indexName="idx_escalations_escalation_type">
+            <column name="escalation_type"/>
+        </createIndex>
+        <createIndex tableName="escalations" indexName="idx_escalations_status">
+            <column name="status"/>
+        </createIndex>
+
+        <!-- Add foreign key constraints -->
+        <addForeignKeyConstraint baseTableName="escalations"
+                                 baseColumnNames="patient_id"
+                                 constraintName="fk_escalations_patient"
+                                 referencedTableName="patients"
+                                 referencedColumnNames="patient_id"
+                                 onDelete="CASCADE"/>
+
+        <addForeignKeyConstraint baseTableName="escalations"
+                                 baseColumnNames="schedule_id"
+                                 constraintName="fk_escalations_schedule"
+                                 referencedTableName="schedules"
+                                 referencedColumnNames="schedule_id"
+                                 onDelete="CASCADE"/>
+
+        <!-- Add CHECK constraints -->
+        <addCheckConstraint tableName="escalations"
+                            constraintName="chk_escalations_type"
+                            checkCondition="escalation_type IN (DOSE_MISSED, NO_RESPONSE)"/>
+
+        <addCheckConstraint tableName="escalations"
+                            constraintName="chk_escalations_level"
+                            checkCondition="escalation_level BETWEEN 1 AND 3"/>
+
+        <addCheckConstraint tableName="escalations"
+                            constraintName="chk_escalations_status"
+                            checkCondition="status IN (PENDING, IN_PROGRESS, RESOLVED)"/>
+
+    </changeSet>
+</databaseChangeLog>

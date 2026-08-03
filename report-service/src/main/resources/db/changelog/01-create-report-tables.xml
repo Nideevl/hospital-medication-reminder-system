@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.0.xsd">
+
+    <changeSet id="01-create-report-tables" author="system">
+        <comment>Create medication_reports and compliance_data tables</comment>
+
+        <!-- Create medication_reports table -->
+        <createTable tableName="medication_reports">
+            <column name="report_id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="patient_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="hospital_id" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="report_date" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="total_medications_scheduled" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="medications_taken" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="medications_missed" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="adherence_percentage" type="DECIMAL(5,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- Create compliance_data table -->
+        <createTable tableName="compliance_data">
+            <column name="compliance_id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="patient_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="week_number" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="month" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="adherence_score" type="DECIMAL(5,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="missed_doses" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="escalations_triggered" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="notes" type="TEXT"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- Create indexes -->
+        <createIndex tableName="medication_reports" indexName="idx_medication_reports_patient_id">
+            <column name="patient_id"/>
+        </createIndex>
+        <createIndex tableName="medication_reports" indexName="idx_medication_reports_hospital_id">
+            <column name="hospital_id"/>
+        </createIndex>
+        <createIndex tableName="medication_reports" indexName="idx_medication_reports_report_date">
+            <column name="report_date"/>
+        </createIndex>
+
+        <createIndex tableName="compliance_data" indexName="idx_compliance_data_patient_id">
+            <column name="patient_id"/>
+        </createIndex>
+        <createIndex tableName="compliance_data" indexName="idx_compliance_data_month">
+            <column name="month"/>
+        </createIndex>
+
+        <!-- Add foreign key constraints -->
+        <addForeignKeyConstraint baseTableName="medication_reports"
+                                 baseColumnNames="patient_id"
+                                 constraintName="fk_medication_reports_patient"
+                                 referencedTableName="patients"
+                                 referencedColumnNames="patient_id"
+                                 onDelete="CASCADE"/>
+
+        <addForeignKeyConstraint baseTableName="compliance_data"
+                                 baseColumnNames="patient_id"
+                                 constraintName="fk_compliance_data_patient"
+                                 referencedTableName="patients"
+                                 referencedColumnNames="patient_id"
+                                 onDelete="CASCADE"/>
+
+        <!-- Add CHECK constraints -->
+        <addCheckConstraint tableName="medication_reports"
+                            constraintName="chk_medication_reports_adherence"
+                            checkCondition="adherence_percentage BETWEEN 0 AND 100"/>
+
+        <addCheckConstraint tableName="compliance_data"
+                            constraintName="chk_compliance_data_score"
+                            checkCondition="adherence_score BETWEEN 0 AND 100"/>
+
+        <addCheckConstraint tableName="compliance_data"
+                            constraintName="chk_compliance_data_week"
+                            checkCondition="week_number BETWEEN 1 AND 53"/>
+
+    </changeSet>
+</databaseChangeLog>

@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.0.xsd">
+
+    <changeSet id="01-create-audit-tables" author="system">
+        <comment>Create medication_audits and user_actions tables</comment>
+
+        <!-- Create medication_audits table -->
+        <createTable tableName="medication_audits">
+            <column name="audit_id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="patient_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="medication_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="action_type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="action_time" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="action_details" type="JSONB"/>
+            <column name="user_id" type="VARCHAR(100)"/>
+            <column name="ip_address" type="VARCHAR(45)"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- Create user_actions table -->
+        <createTable tableName="user_actions">
+            <column name="user_action_id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="action_type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="target_entity" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="target_entity_id" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="details" type="TEXT"/>
+            <column name="ip_address" type="VARCHAR(45)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="user_agent" type="VARCHAR(255)"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- Create indexes -->
+        <createIndex tableName="medication_audits" indexName="idx_medication_audits_patient_id">
+            <column name="patient_id"/>
+        </createIndex>
+        <createIndex tableName="medication_audits" indexName="idx_medication_audits_action_type">
+            <column name="action_type"/>
+        </createIndex>
+        <createIndex tableName="medication_audits" indexName="idx_medication_audits_action_time">
+            <column name="action_time"/>
+        </createIndex>
+
+        <createIndex tableName="user_actions" indexName="idx_user_actions_user_id">
+            <column name="user_id"/>
+        </createIndex>
+        <createIndex tableName="user_actions" indexName="idx_user_actions_action_type">
+            <column name="action_type"/>
+        </createIndex>
+        <createIndex tableName="user_actions" indexName="idx_user_actions_created_at">
+            <column name="created_at"/>
+        </createIndex>
+
+        <!-- Add foreign key constraints -->
+        <addForeignKeyConstraint baseTableName="medication_audits"
+                                 baseColumnNames="patient_id"
+                                 constraintName="fk_medication_audits_patient"
+                                 referencedTableName="patients"
+                                 referencedColumnNames="patient_id"
+                                 onDelete="CASCADE"/>
+
+        <addForeignKeyConstraint baseTableName="medication_audits"
+                                 baseColumnNames="medication_id"
+                                 constraintName="fk_medication_audits_medication"
+                                 referencedTableName="medications"
+                                 referencedColumnNames="medication_id"
+                                 onDelete="CASCADE"/>
+
+        <!-- Add CHECK constraints -->
+        <addCheckConstraint tableName="medication_audits"
+                            constraintName="chk_medication_audits_action"
+                            checkCondition="action_type IN (CREATED, UPDATED, DELETED, TAKEN, MISSED)"/>
+
+        <addCheckConstraint tableName="user_actions"
+                            constraintName="chk_user_actions_action"
+                            checkCondition="action_type IN (LOGIN, SCHEDULE_CREATED, ESCALATION_TRIGGERED, REPORT_GENERATED)"/>
+
+    </changeSet>
+</databaseChangeLog>

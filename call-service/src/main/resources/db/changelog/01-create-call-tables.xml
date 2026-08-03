@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.0.xsd">
+
+    <changeSet id="01-create-call-tables" author="system">
+        <comment>Create call_logs and call_attempts tables</comment>
+
+        <!-- Create call_logs table -->
+        <createTable tableName="call_logs">
+            <column name="call_id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="patient_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="schedule_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="call_initiated_time" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="call_ended_time" type="TIMESTAMP"/>
+            <column name="call_status" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="response_received" type="BOOLEAN" defaultValue="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- Create call_attempts table -->
+        <createTable tableName="call_attempts">
+            <column name="attempt_id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="call_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="attempt_number" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="attempt_time" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="retry_count" type="INT" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- Create indexes -->
+        <createIndex tableName="call_logs" indexName="idx_call_logs_patient_id">
+            <column name="patient_id"/>
+        </createIndex>
+        <createIndex tableName="call_logs" indexName="idx_call_logs_schedule_id">
+            <column name="schedule_id"/>
+        </createIndex>
+        <createIndex tableName="call_logs" indexName="idx_call_logs_call_status">
+            <column name="call_status"/>
+        </createIndex>
+
+        <createIndex tableName="call_attempts" indexName="idx_call_attempts_call_id">
+            <column name="call_id"/>
+        </createIndex>
+        <createIndex tableName="call_attempts" indexName="idx_call_attempts_attempt_number">
+            <column name="attempt_number"/>
+        </createIndex>
+
+        <!-- Add foreign key constraints -->
+        <addForeignKeyConstraint baseTableName="call_logs"
+                                 baseColumnNames="patient_id"
+                                 constraintName="fk_call_logs_patient"
+                                 referencedTableName="patients"
+                                 referencedColumnNames="patient_id"
+                                 onDelete="CASCADE"/>
+
+        <addForeignKeyConstraint baseTableName="call_logs"
+                                 baseColumnNames="schedule_id"
+                                 constraintName="fk_call_logs_schedule"
+                                 referencedTableName="schedules"
+                                 referencedColumnNames="schedule_id"
+                                 onDelete="CASCADE"/>
+
+        <addForeignKeyConstraint baseTableName="call_attempts"
+                                 baseColumnNames="call_id"
+                                 constraintName="fk_call_attempts_call"
+                                 referencedTableName="call_logs"
+                                 referencedColumnNames="call_id"
+                                 onDelete="CASCADE"/>
+
+        <!-- Add CHECK constraints for enum-like fields -->
+        <addCheckConstraint tableName="call_logs"
+                            constraintName="chk_call_logs_status"
+                            checkCondition="call_status IN (INITIATED, IN_PROGRESS, COMPLETED, FAILED)"/>
+
+        <addCheckConstraint tableName="call_attempts"
+                            constraintName="chk_call_attempts_status"
+                            checkCondition="status IN (PENDING, SUCCESS, FAILED)"/>
+
+    </changeSet>
+</databaseChangeLog>

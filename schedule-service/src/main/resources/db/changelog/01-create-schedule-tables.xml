@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.0.xsd">
+
+    <changeSet id="01-create-schedule-tables" author="system">
+        <comment>Create schedule, medication, and schedule_notification tables</comment>
+
+        <!-- Create schedules table -->
+        <createTable tableName="schedules">
+            <column name="schedule_id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="patient_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="medication_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="scheduled_time" type="TIME">
+                <constraints nullable="false"/>
+            </column>
+            <column name="active" type="BOOLEAN" defaultValue="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- Create medications table -->
+        <createTable tableName="medications">
+            <column name="medication_id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="dosage" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="frequency" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="TEXT"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- Create schedule_notifications table -->
+        <createTable tableName="schedule_notifications">
+            <column name="notification_id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="schedule_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="notification_time" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="sent" type="BOOLEAN" defaultValue="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- Create indexes -->
+        <createIndex tableName="schedules" indexName="idx_schedules_patient_id">
+            <column name="patient_id"/>
+        </createIndex>
+        <createIndex tableName="schedules" indexName="idx_schedules_medication_id">
+            <column name="medication_id"/>
+        </createIndex>
+
+        <createIndex tableName="medications" indexName="idx_medications_name">
+            <column name="name"/>
+        </createIndex>
+
+        <createIndex tableName="schedule_notifications" indexName="idx_schedule_notifications_schedule_id">
+            <column name="schedule_id"/>
+        </createIndex>
+
+        <!-- Add foreign key constraints -->
+        <addForeignKeyConstraint baseTableName="schedules"
+                                 baseColumnNames="patient_id"
+                                 constraintName="fk_schedules_patient"
+                                 referencedTableName="patients"
+                                 referencedColumnNames="patient_id"
+                                 onDelete="CASCADE"/>
+
+        <addForeignKeyConstraint baseTableName="schedules"
+                                 baseColumnNames="medication_id"
+                                 constraintName="fk_schedules_medication"
+                                 referencedTableName="medications"
+                                 referencedColumnNames="medication_id"
+                                 onDelete="CASCADE"/>
+
+        <addForeignKeyConstraint baseTableName="schedule_notifications"
+                                 baseColumnNames="schedule_id"
+                                 constraintName="fk_schedule_notifications_schedule"
+                                 referencedTableName="schedules"
+                                 referencedColumnNames="schedule_id"
+                                 onDelete="CASCADE"/>
+
+    </changeSet>
+</databaseChangeLog>
