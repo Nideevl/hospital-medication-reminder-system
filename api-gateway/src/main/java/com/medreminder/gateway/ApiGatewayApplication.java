@@ -20,12 +20,4 @@ public class ApiGatewayApplication {
         return factory -> factory.setPort(8080);
     }
 
-    @Bean
-    public RouteLocator customRouteLocator(RouteLocatorBuilder builder) {
-        return builder.routes()
-            .route("example_route", r -> r
-                .path("/api/**")
-                .uri("http://localhost:8081"))
-            .build();
-    }
 }

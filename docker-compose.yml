@@ -80,12 +80,14 @@
     networks:
       - med-reminder-net
 
-  # ============== MICROSERVICES ==============
+# ============== MICROSERVICES ==============
 
   api-gateway:
     build:
-      context: ./api-gateway
+      context: .
       dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: api-gateway
     ports:
       - "8080:8080"
     depends_on:
@@ -103,8 +105,10 @@
 
   patient-service:
     build:
-      context: ./patient-service
+      context: .
       dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: patient-service
     ports:
       - "8081:8081"
     depends_on:
@@ -124,8 +128,10 @@
 
   schedule-service:
     build:
-      context: ./schedule-service
+      context: .
       dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: schedule-service
     ports:
       - "8082:8082"
     depends_on:
@@ -143,8 +149,10 @@
 
   call-service:
     build:
-      context: ./call-service
+      context: .
       dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: call-service
     ports:
       - "8083:8083"
     depends_on:
@@ -164,8 +172,10 @@
 
   notification-service:
     build:
-      context: ./notification-service
+      context: .
       dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: notification-service
     ports:
       - "8084:8084"
     depends_on:
@@ -183,8 +193,10 @@
 
   report-service:
     build:
-      context: ./report-service
+      context: .
       dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: report-service
     ports:
       - "8085:8085"
     depends_on:
@@ -202,8 +214,10 @@
 
   audit-service:
     build:
-      context: ./audit-service
+      context: .
       dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: audit-service
     ports:
       - "8086:8086"
     depends_on:
@@ -223,8 +237,10 @@
 
   escalation-service:
     build:
-      context: ./escalation-service
+      context: .
       dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: escalation-service
     ports:
       - "8087:8087"
     depends_on:
