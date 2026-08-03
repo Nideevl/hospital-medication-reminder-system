@@ -2,26 +2,32 @@ spring:
   application:
     name: patient-service
   datasource:
-    url: jdbc:postgresql://medreminder-postgres:5432/med_reminder
+    url: jdbc:postgresql://localhost:5432/medreminder_patient
     username: postgres
     password: postgres
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: validate
-    show-sql: false
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    show-sql: false
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.xml
 
 server:
   port: 8081
 
-grpc:
-  server:
-    port: 9001
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
 
 logging:
   level:
     root: INFO
-    com.medreminder.patient: DEBUG
+    com.medreminder: DEBUG

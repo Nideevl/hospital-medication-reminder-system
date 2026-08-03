@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -13,29 +14,40 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "patients")
+@Table(name = "patients", indexes = {
+    @Index(name = "idx_email", columnList = "email"),
+    @Index(name = "idx_mrn", columnList = "medical_record_number"),
+    @Index(name = "idx_active", columnList = "active")
+})
 public class Patient {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "patient_id")
     private UUID patientId;
 
-    @Column(nullable = false)
-    private UUID hospitalId;
-
-    @Column(nullable = false)
+    @Column(name = "first_name", nullable = false, length = 100)
     private String firstName;
 
-    @Column(nullable = false)
+    @Column(name = "last_name", nullable = false, length = 100)
     private String lastName;
 
-    @Column(nullable = false, unique = true)
+    @Column(name = "email", nullable = false, unique = true, length = 255)
+    private String email;
+
+    @Column(name = "phone_number", nullable = false, length = 20)
     private String phoneNumber;
 
-    @Column(nullable = false)
-    private String location;
+    @Column(name = "medical_record_number", nullable = false, unique = true, length = 50)
+    private String medicalRecordNumber;
+
+    @Column(name = "active", nullable = false)
+    private Boolean active = true;
 
     @CreationTimestamp
-    @Column(updatable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
 }

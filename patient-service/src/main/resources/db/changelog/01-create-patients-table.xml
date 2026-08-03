@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.0.xsd">
+
+    <changeSet id="01-create-patients-table" author="system">
+        <createTable tableName="patients">
+            <column name="patient_id" type="uuid"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="first_name" type="varchar(100)"><constraints nullable="false"/></column>
+            <column name="last_name" type="varchar(100)"><constraints nullable="false"/></column>
+            <column name="email" type="varchar(255)"><constraints nullable="false" unique="true"/></column>
+            <column name="phone_number" type="varchar(20)"><constraints nullable="false"/></column>
+            <column name="medical_record_number" type="varchar(50)"><constraints nullable="false" unique="true"/></column>
+            <column name="active" type="boolean" defaultValueBoolean="true"><constraints nullable="false"/></column>
+            <column name="created_at" type="timestamp"><constraints nullable="false"/></column>
+            <column name="updated_at" type="timestamp"><constraints nullable="false"/></column>
+        </createTable>
+        <createIndex indexName="idx_patient_email" tableName="patients"><column name="email"/></createIndex>
+        <createIndex indexName="idx_patient_mrn" tableName="patients"><column name="medical_record_number"/></createIndex>
+        <createIndex indexName="idx_patient_active" tableName="patients"><column name="active"/></createIndex>
+    </changeSet>
+
+</databaseChangeLog>
