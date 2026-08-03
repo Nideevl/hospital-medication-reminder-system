@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: report-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/med_reminder
+    username: postgres
+    password: postgres
+    hikari:
+      maximum-pool-size: 20
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+server:
+  port: 8086
+
+logging:
+  level:
+    root: INFO
+    com.medreminder: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus
