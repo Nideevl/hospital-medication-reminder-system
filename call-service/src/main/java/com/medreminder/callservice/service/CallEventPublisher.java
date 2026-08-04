@@ -23,8 +23,8 @@ public class CallEventPublisher {
 
     public void publishCallResponse(CallLog callLog, String response) {
         CallResponseEvent event = buildCallResponseEvent(callLog, response);
-        log.info("Publishing CallResponseEvent to topic {}: {}", Constants.TOPIC_CALL_RESPONSES, event);
-        kafkaTemplate.send(Constants.TOPIC_CALL_RESPONSES, callLog.getScheduleId().toString(), event);
+        log.info("Publishing CallResponseEvent to topic {}: {}", Constants.KAFKA_TOPIC_CALL_RESPONSE, event);
+        kafkaTemplate.send(Constants.KAFKA_TOPIC_CALL_RESPONSE, callLog.getScheduleId().toString(), event);
     }
 
     private CallResponseEvent buildCallResponseEvent(CallLog callLog, String response) {
