@@ -1,7 +1,7 @@
 package com.medreminder.patient.grpc;
 
-import com.medreminder.common.grpc.GetPatientRequest;
-import com.medreminder.common.grpc.PatientInfo;
+import com.medreminder.common.grpc.PatientServiceProto.GetPatientRequest;
+import com.medreminder.common.grpc.PatientServiceProto.PatientInfo;
 import com.medreminder.common.grpc.PatientServiceGrpc;
 import com.medreminder.patient.entity.Patient;
 import com.medreminder.patient.service.PatientService;
@@ -21,7 +21,7 @@ public class PatientGrpcService extends PatientServiceGrpc.PatientServiceImplBas
     private PatientService patientService;
 
     @Override
-    public void getPatient(GetPatientRequest request, StreamObserver<PatientInfo> responseObserver) {
+    public void getPatientById(GetPatientRequest request, StreamObserver<PatientInfo> responseObserver) { // 👈 Renamed here
         try {
             log.info("gRPC: Fetching patient with ID: {}", request.getPatientId());
             UUID patientId = UUID.fromString(request.getPatientId());
@@ -35,6 +35,7 @@ public class PatientGrpcService extends PatientServiceGrpc.PatientServiceImplBas
                     .setPhoneNumber(patient.getPhoneNumber())
                     .setMedicalRecordNumber(patient.getMedicalRecordNumber())
                     .setActive(patient.getActive())
+                    .setLocation("hospital")
                     .build();
             
             responseObserver.onNext(patientInfo);

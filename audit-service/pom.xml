@@ -17,7 +17,7 @@
     <dependencies>
         <dependency>
             <groupId>com.medreminder</groupId>
-            <artifactId>common-module</artifactId>
+            <artifactId>common</artifactId>
             <version>1.0.0</version>
         </dependency>
 

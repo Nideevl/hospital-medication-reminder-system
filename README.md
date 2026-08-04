@@ -142,7 +142,7 @@ The system follows a **microservices decomposed by business capability** pattern
 ## Technology Stack
 
 ### Core Framework
-- **Spring Boot 4.0.7** - Microservices foundation
+- **Spring Boot 3.2.4** - Microservices foundation
 - **Java 21** - Language runtime
 - **Maven 3.9+** - Build management
 

@@ -1,27 +1,29 @@
 syntax = "proto3";
 
-package com.medreminder.common.proto;
+package com.medreminder.common.grpc;
 
 option java_package = "com.medreminder.common.grpc";
-option java_outer_classname = "ServicesProto";
-option java_multiple_files = true;
+option java_outer_classname = "PatientServiceProto";
 
-// PatientService Definitions
+// ============ PATIENT SERVICE ============
 service PatientService {
-    rpc GetPatientById (GetPatientByIdRequest) returns (GetPatientByIdResponse);
+    rpc GetPatientById (GetPatientRequest) returns (PatientInfo);
     rpc GetCaregiverPhone (GetCaregiverPhoneRequest) returns (GetCaregiverPhoneResponse);
 }
 
-message GetPatientByIdRequest {
+message GetPatientRequest {
     string patient_id = 1;
 }
 
-message GetPatientByIdResponse {
+message PatientInfo {
     string patient_id = 1;
     string first_name = 2;
     string last_name = 3;
-    string phone_number = 4;
-    string location = 5;
+    string email = 4;
+    string phone_number = 5;
+    string medical_record_number = 6;
+    bool active = 7;
+    string location = 8;
 }
 
 message GetCaregiverPhoneRequest {
@@ -32,7 +34,7 @@ message GetCaregiverPhoneResponse {
     string caregiver_phone = 1;
 }
 
-// ScheduleService Definitions
+// ============ SCHEDULE SERVICE ============
 service ScheduleService {
     rpc GetSchedulesForToday (GetSchedulesRequest) returns (SchedulesResponse);
 }
@@ -52,7 +54,7 @@ message ScheduleItem {
     string status = 4;
 }
 
-// CallService Definitions
+// ============ CALL SERVICE ============
 service CallService {
     rpc UpdateCallLog (UpdateCallLogRequest) returns (UpdateCallLogResponse);
 }

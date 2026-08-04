@@ -3,6 +3,7 @@ package com.medreminder.patient.service;
 import com.medreminder.patient.entity.Patient;
 import com.medreminder.patient.exception.ResourceNotFoundException;
 import com.medreminder.patient.repository.PatientRepository;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -68,17 +69,15 @@ class PatientServiceTest {
         verify(patientRepository, times(1)).save(testPatient);
     }
 
-    @Test
+@Test
     @DisplayName("Should throw exception when creating patient with null input")
     void testCreatePatient_NullInput() {
-        // Arrange
-        when(patientRepository.save(any(Patient.class)))
-                .thenThrow(new IllegalArgumentException("Patient cannot be null"));
-
-        // Act & Assert
+        // Act & Assert (No stubbing needed since the service method fails early on validation)
         assertThatThrownBy(() -> patientService.createPatient(null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Patient cannot be null");
+                
+        verifyNoInteractions(patientRepository);
     }
 
     @Test
