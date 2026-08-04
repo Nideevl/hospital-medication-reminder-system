@@ -3,8 +3,8 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.medreminder</groupId>
-        <artifactId>hospital-medication-reminder-system</artifactId>
-        <version>1.0.0</version>
+        <artifactId>med-reminder-system</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
     </parent>
     <artifactId>notification-service</artifactId>
     <name>Notification Service</name>
@@ -12,7 +12,7 @@
         <dependency>
             <groupId>com.medreminder</groupId>
             <artifactId>common-module</artifactId>
-            <version>1.0.0</version>
+            <version>1.0.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

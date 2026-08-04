@@ -182,7 +182,7 @@ The system follows a **microservices decomposed by business capability** pattern
 ## Project Structure
 
 ```
-hospital-medication-reminder-system/
+med-reminder-system/
 ├── common/                          # Shared libraries & utilities
 │   ├── src/main/java/
 │   │   ├── dto/                     # DTOs for inter-service communication
