@@ -58,7 +58,7 @@ public class EscalationService {
         }
     }
 
-    @KafkaListener(topics = "dose-missed", groupId = "escalation-service-group")
+    @KafkaListener(topics = com.medreminder.common.util.Constants.KAFKA_TOPIC_DOSE_MISSED, groupId = "escalation-service-group")
     @Transactional
     public void handleDoseMissedEvent(DoseMissedEvent event) {
         log.info("Received dose-missed event for patient: {}", event.getPatientId());
@@ -76,7 +76,7 @@ public class EscalationService {
             request.setPatientId(event.getPatientId());
             request.setScheduleId(event.getScheduleId());
             request.setEscalationType(escalationType);
-            request.setMedicationName(event.getMedicationName());
+            request.setMedicationName(event.getMedicationId() != null ? event.getMedicationId().toString() : "UNKNOWN");
 
             triggerEscalation(request);
 

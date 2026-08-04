@@ -88,7 +88,7 @@ public class CallService {
                     .timestamp(LocalDateTime.now())
                     .build();
 
-            kafkaTemplate.send(Constants.TOPIC_CALL_RESPONSES, updatedCallLog.getScheduleId().toString(), event);
+            kafkaTemplate.send(Constants.KAFKA_TOPIC_CALL_RESPONSE, updatedCallLog.getScheduleId().toString(), event);
             log.info("Published call response event to Kafka");
         } catch (Exception e) {
             log.warn("Failed to publish call response event: {}", e.getMessage());

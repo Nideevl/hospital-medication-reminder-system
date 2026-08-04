@@ -19,4 +19,7 @@ public interface EscalationRepository extends JpaRepository<Escalation, UUID> {
 
     @Query("SELECT COUNT(e) FROM Escalation e WHERE e.patientId = ?1 AND e.escalationType = 'MISSED_DOSE' AND e.triggeredAt >= ?2")
     long countMissedDosesInRange(UUID patientId, LocalDateTime fromDateTime);
+
+    List<Escalation> findByPatientIdOrderByCreatedAtDesc(java.util.UUID patientId);
+
 }

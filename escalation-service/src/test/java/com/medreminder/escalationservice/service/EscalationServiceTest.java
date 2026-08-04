@@ -1,7 +1,9 @@
 package com.medreminder.escalationservice.service;
 
+import com.medreminder.escalationservice.dto.EscalationRequest;
+import com.medreminder.escalationservice.dto.EscalationResponse;
 import com.medreminder.escalationservice.entity.Escalation;
-import com.medreminder.escalationservice.exception.ResourceNotFoundException;
+import com.medreminder.escalationservice.exception.EscalationException;
 import com.medreminder.escalationservice.repository.EscalationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -13,14 +15,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -47,78 +48,66 @@ class EscalationServiceTest {
         patientId = UUID.randomUUID();
         scheduleId = UUID.randomUUID();
 
-        testEscalation = Escalation.builder()
-                .escalationId(escalationId)
-                .patientId(patientId)
-                .scheduleId(scheduleId)
-                .escalationType("DOSE_MISSED")
-                .escalationLevel(1)
-                .escalatedTo("CAREGIVER_SMS")
-                .escalationTime(LocalDateTime.now())
-                .status("PENDING")
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
+        testEscalation = new Escalation();
+        testEscalation.setEscalationId(escalationId);
+        testEscalation.setPatientId(patientId);
+        testEscalation.setScheduleId(scheduleId);
+        testEscalation.setEscalationType("MISSED_DOSE");
+        testEscalation.setEscalationLevel(1);
+        testEscalation.setEscalatedTo("CAREGIVER_SMS");
+        testEscalation.setEscalationTime(LocalDateTime.now());
+        testEscalation.setStatus("TRIGGERED");
+        testEscalation.setCreatedAt(LocalDateTime.now());
+        testEscalation.setUpdatedAt(LocalDateTime.now());
     }
 
     @Test
-    @DisplayName("Should create escalation successfully")
-    void testCreateEscalation_Success() {
+    @DisplayName("Should trigger escalation successfully")
+    void testTriggerEscalation_Success() {
         // Arrange
+        EscalationRequest request = new EscalationRequest();
+        request.setPatientId(patientId);
+        request.setScheduleId(scheduleId);
+        request.setEscalationType("MISSED_DOSE");
+        request.setMedicationName("Aspirin");
+
         when(escalationRepository.save(any(Escalation.class))).thenReturn(testEscalation);
 
         // Act
-        Escalation result = escalationService.createEscalation(testEscalation);
+        EscalationResponse response = escalationService.triggerEscalation(request);
 
         // Assert
-        assertThat(result).isNotNull();
-        assertThat(result.getEscalationId()).isEqualTo(escalationId);
-        assertThat(result.getStatus()).isEqualTo("PENDING");
-        verify(escalationRepository, times(1)).save(testEscalation);
+        assertThat(response).isNotNull();
+        assertThat(response.getEscalationId()).isEqualTo(escalationId);
+        verify(escalationRepository, times(1)).save(any(Escalation.class));
+        verify(rabbitTemplate, times(1)).convertAndSend(eq("med-reminder-exchange"), eq("escalation.route"), any(Escalation.class));
     }
 
     @Test
     @DisplayName("Should retrieve escalation by ID successfully")
-    void testGetEscalationById_Success() {
+    void testGetEscalation_Success() {
         // Arrange
         when(escalationRepository.findById(escalationId)).thenReturn(Optional.of(testEscalation));
 
         // Act
-        Escalation result = escalationService.getEscalationById(escalationId);
+        EscalationResponse response = escalationService.getEscalation(escalationId);
 
         // Assert
-        assertThat(result).isNotNull();
-        assertThat(result.getEscalationId()).isEqualTo(escalationId);
+        assertThat(response).isNotNull();
+        assertThat(response.getEscalationId()).isEqualTo(escalationId);
         verify(escalationRepository, times(1)).findById(escalationId);
     }
 
     @Test
-    @DisplayName("Should throw ResourceNotFoundException when escalation not found")
-    void testGetEscalationById_NotFound() {
+    @DisplayName("Should throw EscalationException when escalation not found")
+    void testGetEscalation_NotFound() {
         // Arrange
         when(escalationRepository.findById(escalationId)).thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThatThrownBy(() -> escalationService.getEscalationById(escalationId))
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessageContaining("Escalation not found with ID: " + escalationId);
-    }
-
-    @Test
-    @DisplayName("Should update escalation status successfully")
-    void testUpdateEscalationStatus_Success() {
-        // Arrange
-        when(escalationRepository.findById(escalationId)).thenReturn(Optional.of(testEscalation));
-        when(escalationRepository.save(any(Escalation.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        // Act
-        Escalation result = escalationService.updateEscalationStatus(escalationId, "IN_PROGRESS");
-
-        // Assert
-        assertThat(result).isNotNull();
-        assertThat(result.getStatus()).isEqualTo("IN_PROGRESS");
-        verify(escalationRepository, times(1)).findById(escalationId);
-        verify(escalationRepository, times(1)).save(any(Escalation.class));
+        assertThatThrownBy(() -> escalationService.getEscalation(escalationId))
+                .isInstanceOf(EscalationException.class)
+                .hasMessageContaining("Escalation not found");
     }
 
     @Test
@@ -129,27 +118,12 @@ class EscalationServiceTest {
         when(escalationRepository.save(any(Escalation.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // Act
-        Escalation result = escalationService.resolveEscalation(escalationId, "Medication taken");
+        EscalationResponse response = escalationService.resolveEscalation(escalationId);
 
         // Assert
-        assertThat(result).isNotNull();
-        assertThat(result.getStatus()).isEqualTo("RESOLVED");
-        assertThat(result.getOutcome()).isEqualTo("Medication taken");
-        assertThat(result.getResolvedTime()).isNotNull();
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo("COMPLETED");
         verify(escalationRepository, times(1)).findById(escalationId);
         verify(escalationRepository, times(1)).save(any(Escalation.class));
-    }
-
-    @Test
-    @DisplayName("Should publish to RabbitMQ successfully")
-    void testPublishToRabbitMQ_Success() {
-        // Arrange
-        doNothing().when(rabbitTemplate).convertAndSend(anyString(), any());
-
-        // Act
-        escalationService.publishEscalationToRabbitMQ(testEscalation);
-
-        // Assert
-        verify(rabbitTemplate, times(1)).convertAndSend(anyString(), any());
     }
 }

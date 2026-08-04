@@ -47,4 +47,21 @@ public class Escalation {
 
     @Column
     private LocalDateTime resolvedAt;
+
+    @Column
+    private int escalationLevel;
+
+    @Column
+    private String escalatedTo;
+
+    @Column
+    private LocalDateTime escalationTime;
+
+    @CreationTimestamp
+    @Column(updatable = false)
+    private LocalDateTime createdAt;
+
+    @Column
+    private LocalDateTime updatedAt;
+
 }

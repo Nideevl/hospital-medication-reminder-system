@@ -58,11 +58,11 @@ public class EscalationEventConsumer {
             @Header(value = KafkaHeaders.OFFSET, required = false) Long offset) {
 
         log.info("Received dose-missed event: patientId={}, scheduleId={}, missedTime={}, partition={}, offset={}",
-                event.getPatientId(), event.getScheduleId(), event.getMissedTime(), partition, offset);
+                event.getPatientId(), event.getScheduleId(), event.getTimestamp(), partition, offset);
 
         try {
-            UUID patientId = UUID.fromString(event.getPatientId());
-            UUID scheduleId = UUID.fromString(event.getScheduleId());
+            UUID patientId = event.getPatientId();
+            UUID scheduleId = event.getScheduleId();
 
             // Determine current escalation level for patient
             int currentLevel = getCurrentEscalationLevel(patientId);
@@ -178,14 +178,14 @@ public class EscalationEventConsumer {
             message.put("timestamp", escalation.getEscalationTime().toString());
             message.put("action", determineEscalationAction(escalation.getEscalationLevel()));
 
-            rabbitTemplate.convertAndSend(Constants.RABBITMQ_ESCALATION_QUEUE, message);
+            rabbitTemplate.convertAndSend(Constants.RABBITMQ_QUEUE_ESCALATION, message);
 
             log.info("Successfully published escalation to RabbitMQ queue: {}, escalationId: {}",
-                    Constants.RABBITMQ_ESCALATION_QUEUE, escalation.getEscalationId());
+                    Constants.RABBITMQ_QUEUE_ESCALATION, escalation.getEscalationId());
 
         } catch (Exception e) {
             log.error("Failed to publish escalation to RabbitMQ queue: {}, escalationId: {}, error: {}",
-                    Constants.RABBITMQ_ESCALATION_QUEUE, escalation.getEscalationId(), e.getMessage(), e);
+                    Constants.RABBITMQ_QUEUE_ESCALATION, escalation.getEscalationId(), e.getMessage(), e);
             // Don't rethrow - escalation is already saved
         }
     }
