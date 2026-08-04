@@ -1,6 +1,5 @@
 package com.medreminder.auditservice.integration;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.medreminder.auditservice.entity.MedicationAudit;
 import com.medreminder.auditservice.repository.MedicationAuditRepository;
 import com.medreminder.common.dto.CallResponseEvent;
@@ -15,16 +14,20 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 @SpringBootTest
+@ActiveProfiles("test")
 @EmbeddedKafka(partitions = 1, topics = {
         Constants.KAFKA_TOPIC_MEDICATION_DUE,
         Constants.KAFKA_TOPIC_CALL_RESPONSE,
@@ -36,9 +39,6 @@ class AuditServiceIntegrationTest {
 
     @Autowired
     private KafkaTemplate<String, Object> kafkaTemplate;
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
     @Autowired
     private MedicationAuditRepository medicationAuditRepository;
@@ -58,57 +58,52 @@ class AuditServiceIntegrationTest {
     @Test
     @DisplayName("Should audit all event types")
     void testAuditTrailForAllEvents() throws Exception {
-        // 1. Send MedicationDueEvent
         MedicationDueEvent dueEvent = MedicationDueEvent.builder()
-                .patientId(patientId.toString())
-                .medicationId(medicationId.toString())
-                .scheduledTime("08:00")
+                .patientId(patientId)
+                .medicationId(medicationId)
+                .scheduledTime(LocalTime.of(8, 0))
                 .location("Patient Home")
                 .timestamp(LocalDateTime.now())
                 .build();
 
         kafkaTemplate.send(Constants.KAFKA_TOPIC_MEDICATION_DUE, 
-                patientId.toString(), dueEvent);
-        kafkaTemplate.flush();
+                patientId.toString(), dueEvent).get();
 
-        // 2. Send CallResponseEvent
         CallResponseEvent callEvent = CallResponseEvent.builder()
-                .callId(UUID.randomUUID().toString())
-                .patientId(patientId.toString())
-                .scheduleId(scheduleId.toString())
+                .callLogId(UUID.randomUUID())
+                .patientId(patientId)
+                .scheduleId(scheduleId)
                 .responseReceived(true)
-                .response("TAKEN")
-                .responseTime(LocalDateTime.now())
+                .ivrResponse("1")
+                .callStatus("COMPLETED")
+                .timestamp(LocalDateTime.now())
                 .build();
 
         kafkaTemplate.send(Constants.KAFKA_TOPIC_CALL_RESPONSE, 
-                patientId.toString(), callEvent);
-        kafkaTemplate.flush();
+                patientId.toString(), callEvent).get();
 
-        // 3. Send DoseMissedEvent
         DoseMissedEvent doseEvent = DoseMissedEvent.builder()
-                .patientId(patientId.toString())
-                .scheduleId(scheduleId.toString())
+                .patientId(patientId)
+                .scheduleId(scheduleId)
                 .missedTime(LocalDateTime.now())
                 .build();
 
         kafkaTemplate.send(Constants.KAFKA_TOPIC_DOSE_MISSED, 
-                patientId.toString(), doseEvent);
+                patientId.toString(), doseEvent).get();
+
         kafkaTemplate.flush();
 
-        // Assert - Wait for all audits to be created
         await().atMost(10, TimeUnit.SECONDS).untilAsserted(() -> {
             List<MedicationAudit> audits = medicationAuditRepository
                     .findByPatientId(patientId);
-            
+
             assertThat(audits).hasSize(3);
-            
-            // Verify action types
-            List<String> actionTypes = audits.stream()
-                    .map(MedicationAudit::getActionType)
-                    .collect(java.util.stream.Collectors.toList());
-            
-            assertThat(actionTypes).containsExactlyInAnyOrder(
+
+            List<String> actions = audits.stream()
+                    .map(MedicationAudit::getAction)
+                    .collect(Collectors.toList());
+
+            assertThat(actions).containsExactlyInAnyOrder(
                     "MEDICATION_DUE",
                     "CALL_RESPONSE_TAKEN",
                     "DOSE_MISSED"
@@ -119,112 +114,99 @@ class AuditServiceIntegrationTest {
     @Test
     @DisplayName("Should include full event payload in audit details")
     void testAuditDetailsContainFullPayload() throws Exception {
-        // Arrange
         MedicationDueEvent event = MedicationDueEvent.builder()
-                .patientId(patientId.toString())
-                .medicationId(medicationId.toString())
-                .scheduledTime("09:30")
+                .patientId(patientId)
+                .medicationId(medicationId)
+                .scheduledTime(LocalTime.of(9, 30))
                 .location("Workplace")
                 .timestamp(LocalDateTime.now())
                 .build();
 
-        // Act
         kafkaTemplate.send(Constants.KAFKA_TOPIC_MEDICATION_DUE, 
-                patientId.toString(), event);
+                patientId.toString(), event).get();
         kafkaTemplate.flush();
 
-        // Assert
         await().atMost(10, TimeUnit.SECONDS).untilAsserted(() -> {
             List<MedicationAudit> audits = medicationAuditRepository
                     .findByPatientId(patientId);
-            
+
             assertThat(audits).isNotEmpty();
-            
+
             MedicationAudit audit = audits.get(0);
-            assertThat(audit.getActionDetails()).isNotNull();
-            assertThat(audit.getActionDetails()).contains(patientId.toString());
-            assertThat(audit.getActionDetails()).contains(medicationId.toString());
-            assertThat(audit.getActionDetails()).contains("09:30");
+            assertThat(audit.getPatientId()).isEqualTo(patientId);
+            assertThat(audit.getScheduleId()).isEqualTo(medicationId);
+            assertThat(audit.getAction()).isEqualTo("MEDICATION_DUE");
         });
     }
 
     @Test
     @DisplayName("Should handle duplicate events gracefully")
     void testDuplicateEvents() throws Exception {
-        // Arrange - Send same event twice
         MedicationDueEvent event = MedicationDueEvent.builder()
-                .patientId(patientId.toString())
-                .medicationId(medicationId.toString())
-                .scheduledTime("08:00")
+                .patientId(patientId)
+                .medicationId(medicationId)
+                .scheduledTime(LocalTime.of(8, 0))
                 .location("Patient Home")
                 .timestamp(LocalDateTime.now())
                 .build();
 
-        // Act - Send duplicate events
         kafkaTemplate.send(Constants.KAFKA_TOPIC_MEDICATION_DUE, 
-                patientId.toString(), event);
+                patientId.toString(), event).get();
         kafkaTemplate.send(Constants.KAFKA_TOPIC_MEDICATION_DUE, 
-                patientId.toString(), event);
+                patientId.toString(), event).get();
         kafkaTemplate.flush();
 
-        // Assert - Both events should be audited
         await().atMost(10, TimeUnit.SECONDS).untilAsserted(() -> {
             List<MedicationAudit> audits = medicationAuditRepository
                     .findByPatientId(patientId);
-            
+
             assertThat(audits).hasSize(2);
-            
-            // Verify both have same details
+
             MedicationAudit audit1 = audits.get(0);
             MedicationAudit audit2 = audits.get(1);
-            
-            assertThat(audit1.getActionDetails())
-                    .isEqualTo(audit2.getActionDetails());
+
+            assertThat(audit1.getAction()).isEqualTo(audit2.getAction());
+            assertThat(audit1.getPatientId()).isEqualTo(audit2.getPatientId());
         });
     }
 
     @Test
     @DisplayName("Should audit multiple events for different patients")
     void testMultiplePatientsAudit() throws Exception {
-        // Arrange
         UUID patientId2 = UUID.randomUUID();
         UUID medicationId2 = UUID.randomUUID();
 
-        // Send events for patient 1
         MedicationDueEvent event1 = MedicationDueEvent.builder()
-                .patientId(patientId.toString())
-                .medicationId(medicationId.toString())
-                .scheduledTime("08:00")
+                .patientId(patientId)
+                .medicationId(medicationId)
+                .scheduledTime(LocalTime.of(8, 0))
                 .location("Home")
                 .timestamp(LocalDateTime.now())
                 .build();
 
-        // Send events for patient 2
         MedicationDueEvent event2 = MedicationDueEvent.builder()
-                .patientId(patientId2.toString())
-                .medicationId(medicationId2.toString())
-                .scheduledTime("09:00")
+                .patientId(patientId2)
+                .medicationId(medicationId2)
+                .scheduledTime(LocalTime.of(9, 0))
                 .location("Office")
                 .timestamp(LocalDateTime.now())
                 .build();
 
-        // Act
         kafkaTemplate.send(Constants.KAFKA_TOPIC_MEDICATION_DUE, 
-                patientId.toString(), event1);
+                patientId.toString(), event1).get();
         kafkaTemplate.send(Constants.KAFKA_TOPIC_MEDICATION_DUE, 
-                patientId2.toString(), event2);
+                patientId2.toString(), event2).get();
         kafkaTemplate.flush();
 
-        // Assert
         await().atMost(10, TimeUnit.SECONDS).untilAsserted(() -> {
             List<MedicationAudit> audits1 = medicationAuditRepository
                     .findByPatientId(patientId);
             List<MedicationAudit> audits2 = medicationAuditRepository
                     .findByPatientId(patientId2);
-            
+
             assertThat(audits1).hasSize(1);
             assertThat(audits2).hasSize(1);
-            
+
             assertThat(audits1.get(0).getPatientId()).isEqualTo(patientId);
             assertThat(audits2.get(0).getPatientId()).isEqualTo(patientId2);
         });

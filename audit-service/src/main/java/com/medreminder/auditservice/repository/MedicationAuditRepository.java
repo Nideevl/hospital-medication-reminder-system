@@ -12,6 +12,10 @@ import java.util.UUID;
 @Repository
 public interface MedicationAuditRepository extends JpaRepository<MedicationAudit, UUID> {
 
+    List<MedicationAudit> findByPatientId(UUID patientId);
+
+    List<MedicationAudit> findByAction(String action);
+
     List<MedicationAudit> findByPatientIdOrderByCreatedAtDesc(UUID patientId);
 
     @Query("SELECT ma FROM MedicationAudit ma WHERE ma.patientId = ?1 AND ma.createdAt >= ?2 AND ma.createdAt <= ?3 ORDER BY ma.createdAt DESC")

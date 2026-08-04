@@ -12,6 +12,8 @@ import java.util.UUID;
 @Repository
 public interface UserActionRepository extends JpaRepository<UserAction, UUID> {
 
+    List<UserAction> findByUserId(UUID userId);
+
     List<UserAction> findByUserIdOrderByTimestampDesc(UUID userId);
 
     @Query("SELECT ua FROM UserAction ua WHERE ua.timestamp >= ?1 AND ua.timestamp <= ?2 ORDER BY ua.timestamp DESC")

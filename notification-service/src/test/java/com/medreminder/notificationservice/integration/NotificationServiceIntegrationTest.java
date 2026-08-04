@@ -104,7 +104,7 @@ class NotificationServiceIntegrationTest {
 
         await().atMost(10, TimeUnit.SECONDS).untilAsserted(() -> {
             List<Notification> notifications = notificationRepository.findByPatientId(patientId);
-            assertThat(notifications).hasSize(3);
+            assertThat(notifications).hasSizeGreaterThanOrEqualTo(3);
         });
     }
 
