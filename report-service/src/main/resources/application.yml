@@ -1,26 +1,63 @@
 spring:
   application:
     name: report-service
+  
+  server:
+    port: 8086
+  
   datasource:
     url: jdbc:postgresql://localhost:5432/med_reminder
     username: postgres
     password: postgres
-    hikari:
-      maximum-pool-size: 20
+    driver-class-name: org.postgresql.Driver
+  
   jpa:
     hibernate:
       ddl-auto: validate
+    show-sql: false
+    database-platform: org.hibernate.dialect.PostgreSQL10Dialect
+  
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.xml
+  
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: report-service-group
+      auto-offset-reset: earliest
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.type.mapping: |
+          medicationDueEvent:com.medreminder.common.dto.MedicationDueEvent
+          callResponseEvent:com.medreminder.common.dto.CallResponseEvent
+          doseMissedEvent:com.medreminder.common.dto.DoseMissedEvent
 
-server:
-  port: 8086
+grpc:
+  client:
+    patient-service:
+      host: localhost
+      port: 9001
+      enable-keep-alive: true
+    schedule-service:
+      host: localhost
+      port: 9002
+      enable-keep-alive: true
 
 logging:
   level:
     root: INFO
     com.medreminder: DEBUG
+    org.springframework.kafka: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,metrics,prometheus
+        include: health,info,metrics,prometheus
+  metrics:
+    export:
+      prometheus:
+        enabled: true

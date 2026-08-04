@@ -1,34 +1,81 @@
-﻿spring:
+spring:
   application:
     name: api-gateway
+  
+  server:
+    port: 8080
+    servlet:
+      context-path: /api
+  
   cloud:
     gateway:
-      discovery:
-        locator:
-          enabled: false
       routes:
-      # Routes are defined programmatically in GatewayConfig.java
-      # This section is kept empty for programmatic routing
-  config:
-    import: "optional:configserver:"
-
-server:
-  port: 8080
+        - id: patient-service
+          uri: http://localhost:8081
+          predicates:
+            - Path=/patients/**
+          filters:
+            - StripPrefix=0
+        
+        - id: schedule-service
+          uri: http://localhost:8082
+          predicates:
+            - Path=/schedules/**
+        
+        - id: call-service
+          uri: http://localhost:8083
+          predicates:
+            - Path=/calls/**
+        
+        - id: escalation-service
+          uri: http://localhost:8084
+          predicates:
+            - Path=/escalations/**
+        
+        - id: notification-service
+          uri: http://localhost:8085
+          predicates:
+            - Path=/notifications/**
+        
+        - id: report-service
+          uri: http://localhost:8086
+          predicates:
+            - Path=/reports/**
+        
+        - id: audit-service
+          uri: http://localhost:8087
+          predicates:
+            - Path=/audits/**
+  
+  security:
+    filter:
+      order: 5
+  
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
 
 logging:
   level:
-    com.medreminder.gateway: INFO
-    org.springframework.cloud.gateway: INFO
-    org.springframework.web: INFO
+    root: INFO
+    com.medreminder: DEBUG
+    org.springframework.security: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,metrics
+        include: health,info,metrics,prometheus
   endpoint:
     health:
       show-details: always
-
-# JWT Secret - Must be set via environment variable
-# JWT_SECRET: ${JWT_SECRET:}
+  metrics:
+    export:
+      prometheus:
+        enabled: true

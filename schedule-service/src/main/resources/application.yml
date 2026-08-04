@@ -1,24 +1,58 @@
 spring:
+  application:
+    name: schedule-service
+  
+  server:
+    port: 8082
+  
   datasource:
-    url: jdbc:postgresql://medreminder-postgres:5432/med_reminder
+    url: jdbc:postgresql://localhost:5432/med_reminder
     username: postgres
     password: postgres
     driver-class-name: org.postgresql.Driver
+  
   jpa:
     hibernate:
       ddl-auto: validate
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: false
+    database-platform: org.hibernate.dialect.PostgreSQL10Dialect
+  
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.xml
+  
   kafka:
     bootstrap-servers: localhost:9092
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-  liquibase:
-    enabled: false
-server:
-  port: 8082
+      acks: all
+      retries: 3
+      properties:
+        linger.ms: 10
+    topics:
+      medication-due: medication-due
+      call-response-received: call-response-received
+
 grpc:
   server:
     port: 9002
+    enable-keep-alive: true
+
+logging:
+  level:
+    root: INFO
+    com.medreminder: DEBUG
+    org.springframework.kafka: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  metrics:
+    export:
+      prometheus:
+        enabled: true
