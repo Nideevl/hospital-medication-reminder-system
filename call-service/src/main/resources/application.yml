@@ -15,11 +15,11 @@ spring:
     hibernate:
       ddl-auto: validate
     show-sql: false
-    database-platform: org.hibernate.dialect.PostgreSQL10Dialect
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
   
   liquibase:
     enabled: true
-    change-log: classpath:db/changelog/db.changelog-master.xml
+    change-log: classpath:db/changelog/db.changelog-call-service-master.xml
   
   kafka:
     bootstrap-servers: localhost:9092

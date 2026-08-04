@@ -1,7 +1,9 @@
 package com.medreminder.callservice.grpc;
 
-import com.medreminder.scheduleservice.grpc.ScheduleServiceGrpc;
-import com.medreminder.scheduleservice.grpc.ScheduleServiceOuterClass.*;
+import com.medreminder.common.grpc.GetSchedulesRequest;
+import com.medreminder.common.grpc.ScheduleItem;
+import com.medreminder.common.grpc.ScheduleServiceGrpc;
+import com.medreminder.common.grpc.SchedulesResponse;
 import io.grpc.StatusRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,14 +31,7 @@ public class ScheduleServiceClient {
         this.scheduleServiceStub = scheduleServiceStub;
     }
 
-    /**
-     * Fetches all schedules for today for a given patient.
-     *
-     * @param patientId UUID of the patient
-     * @return List of ScheduleResponse containing todays schedules
-     * @throws StatusRuntimeException if gRPC call fails
-     */
-    public List<ScheduleResponse> getSchedulesForToday(UUID patientId) {
+    public List<ScheduleItem> getSchedulesForToday(UUID patientId) {
         log.debug("Fetching todays schedules for patientId: {}", patientId);
 
         try {
@@ -44,11 +39,11 @@ public class ScheduleServiceClient {
                     .setPatientId(patientId.toString())
                     .build();
 
-            GetSchedulesResponse response = scheduleServiceStub
+            SchedulesResponse response = scheduleServiceStub
                     .withDeadlineAfter(TIMEOUT_SECONDS, TimeUnit.SECONDS)
                     .getSchedulesForToday(request);
 
-            List<ScheduleResponse> schedules = response.getSchedulesList();
+            List<ScheduleItem> schedules = response.getSchedulesList();
             log.debug("Successfully fetched {} schedules for patientId: {}", schedules.size(), patientId);
             return schedules;
 

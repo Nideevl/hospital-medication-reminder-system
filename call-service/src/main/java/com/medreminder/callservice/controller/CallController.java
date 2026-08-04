@@ -32,7 +32,7 @@ public class CallController {
     @PostMapping("/response")
     public ResponseEntity<CallLogResponse> updateCallResponse(@RequestBody UpdateCallResponseRequest request) {
         log.info("POST /api/calls/response - Call: {}", request.getCallId());
-        CallLogResponse response = callService.updateCallResponse(request);
+        CallLogResponse response = callService.updateCallResponse(request.getCallId(), request);
         return ResponseEntity.ok(response);
     }
 

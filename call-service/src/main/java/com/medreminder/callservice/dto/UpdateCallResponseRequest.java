@@ -11,6 +11,7 @@ import java.util.UUID;
 @AllArgsConstructor
 public class UpdateCallResponseRequest {
     private UUID callId;
+    private String callStatus;
     private String ivrResponse;
     private Integer callDurationSeconds;
 }

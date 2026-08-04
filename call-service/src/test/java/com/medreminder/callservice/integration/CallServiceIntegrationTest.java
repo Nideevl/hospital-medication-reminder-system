@@ -1,5 +1,9 @@
 package com.medreminder.callservice.integration;
 
+import com.medreminder.callservice.dto.CallLogResponse;
+import com.medreminder.callservice.dto.InitiateCallRequest;
+import org.springframework.test.context.TestPropertySource;
+import com.medreminder.callservice.dto.UpdateCallResponseRequest;
 import com.medreminder.callservice.entity.CallLog;
 import com.medreminder.callservice.repository.CallLogRepository;
 import com.medreminder.callservice.service.CallService;
@@ -9,7 +13,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.test.annotation.DirtiesContext;
 
@@ -17,13 +20,18 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
 
 @SpringBootTest
 @EmbeddedKafka(partitions = 1, topics = {Constants.KAFKA_TOPIC_CALL_RESPONSE})
 @DirtiesContext
-@DisplayName("Call Service Integration Tests with gRPC and Kafka")
+@TestPropertySource(properties = {
+    "spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL",
+    "spring.datasource.driver-class-name=org.h2.Driver",
+    "spring.datasource.username=sa",
+    "spring.datasource.password=",
+    "spring.liquibase.enabled=false", "spring.liquibase.duplicate-file-mode=WARN"
+})
+@DisplayName("Call Service Integration Tests with Embedded Kafka")
 class CallServiceIntegrationTest {
 
     @Autowired
@@ -32,98 +40,70 @@ class CallServiceIntegrationTest {
     @Autowired
     private CallLogRepository callLogRepository;
 
-    @MockBean
-    private PatientServiceClient patientServiceClient;
-
     private UUID patientId;
     private UUID scheduleId;
-    private String phoneNumber;
 
     @BeforeEach
     void setUp() {
         patientId = UUID.randomUUID();
         scheduleId = UUID.randomUUID();
-        phoneNumber = "+1234567890";
         callLogRepository.deleteAll();
     }
 
     @Test
-    @DisplayName("Should initiate call and publish Kafka event")
-    void testInitiateCallAndPublishEvent() {
+    @DisplayName("Should initiate call and record attempt in database")
+    void testInitiateCall_Success() {
         // Arrange
-        when(patientServiceClient.getPatientById(any())).thenReturn(createMockPatientResponse());
-        when(patientServiceClient.getCaregiverPhone(any())).thenReturn(phoneNumber);
+        InitiateCallRequest request = new InitiateCallRequest();
+        request.setPatientId(patientId);
+        request.setScheduleId(scheduleId);
 
         // Act
-        CallLog callLog = callService.initiateCall(patientId, scheduleId, phoneNumber);
+        CallLogResponse response = callService.initiateCall(request);
 
         // Assert
-        assertThat(callLog).isNotNull();
-        assertThat(callLog.getCallId()).isNotNull();
-        assertThat(callLog.getPatientId()).isEqualTo(patientId);
-        assertThat(callLog.getScheduleId()).isEqualTo(scheduleId);
-        assertThat(callLog.getCallStatus()).isEqualTo("INITIATED");
+        assertThat(response).isNotNull();
+        assertThat(response.getCallId()).isNotNull();
+        assertThat(response.getPatientId()).isEqualTo(patientId);
+        assertThat(response.getScheduleId()).isEqualTo(scheduleId);
+        assertThat(response.getCallStatus()).isEqualTo("INITIATED");
 
         // Verify call log saved in database
-        CallLog saved = callLogRepository.findById(callLog.getCallId()).orElse(null);
+        CallLog saved = callLogRepository.findById(response.getCallId()).orElse(null);
         assertThat(saved).isNotNull();
         assertThat(saved.getCallStatus()).isEqualTo("INITIATED");
-
-        // Verify Kafka event would be published (publishing happens async in service)
-        // In a real test, you would verify the event was sent to Kafka
     }
 
     @Test
-    @DisplayName("Should update call response and publish event")
+    @DisplayName("Should update call response and persist state")
     void testUpdateCallResponse_Success() {
-        // Arrange - Create a call log first
-        CallLog callLog = CallLog.builder()
-                .callId(UUID.randomUUID())
-                .patientId(patientId)
-                .scheduleId(scheduleId)
-                .callInitiatedTime(LocalDateTime.now())
-                .callStatus("IN_PROGRESS")
-                .responseReceived(false)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
-        callLogRepository.save(callLog);
+        // Arrange - Create and save initial call log
+        CallLog callLog = new CallLog();
+        callLog.setPatientId(patientId);
+        callLog.setScheduleId(scheduleId);
+        callLog.setCallStatus("INITIATED");
+        callLog.setCallInitiatedAt(LocalDateTime.now());
+        CallLog savedCallLog = callLogRepository.save(callLog);
+
+        UpdateCallResponseRequest request = new UpdateCallResponseRequest();
+        request.setCallId(savedCallLog.getCallId());
+        request.setCallStatus("COMPLETED");
+        request.setIvrResponse("1");
+        request.setCallDurationSeconds(45);
 
         // Act
-        CallLog updated = callService.updateCallResponse(callLog.getCallId(), true, "TAKEN");
+        CallLogResponse updated = callService.updateCallResponse(savedCallLog.getCallId(), request);
 
         // Assert
         assertThat(updated).isNotNull();
-        assertThat(updated.isResponseReceived()).isTrue();
         assertThat(updated.getCallStatus()).isEqualTo("COMPLETED");
+        assertThat(updated.getIvrResponse()).isEqualTo("1");
+        assertThat(updated.getCallDurationSeconds()).isEqualTo(45);
 
-        // Verify event would be published to Kafka (async)
-        // Event publishing is handled by CallEventPublisher
-    }
-
-    @Test
-    @DisplayName("Should handle gRPC patient fetch failure gracefully")
-    void testGrpcPatientFetch_Failure() {
-        // Arrange
-        when(patientServiceClient.getPatientById(any()))
-                .thenThrow(new RuntimeException("gRPC connection failed"));
-
-        // Act
-        try {
-            callService.initiateCall(patientId, scheduleId, phoneNumber);
-        } catch (Exception e) {
-            // Assert
-            assertThat(e).isInstanceOf(RuntimeException.class);
-            assertThat(e.getMessage()).contains("gRPC connection failed");
-        }
-    }
-
-    private Object createMockPatientResponse() {
-        // Mock PatientResponse object
-        return new Object() {
-            public String getPatientId() { return patientId.toString(); }
-            public String getName() { return "John Doe"; }
-            public String getPhone() { return phoneNumber; }
-        };
+        // Verify database persistence
+        CallLog persisted = callLogRepository.findById(savedCallLog.getCallId()).orElse(null);
+        assertThat(persisted).isNotNull();
+        assertThat(persisted.getCallStatus()).isEqualTo("COMPLETED");
+        assertThat(persisted.getIvrResponse()).isEqualTo("1");
     }
 }

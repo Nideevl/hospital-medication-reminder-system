@@ -1,9 +1,13 @@
 package com.medreminder.callservice.service;
 
+import com.medreminder.callservice.dto.CallLogResponse;
+import com.medreminder.callservice.dto.InitiateCallRequest;
+import com.medreminder.callservice.dto.UpdateCallResponseRequest;
+import com.medreminder.callservice.entity.CallAttempt;
 import com.medreminder.callservice.entity.CallLog;
-import com.medreminder.callservice.exception.ResourceNotFoundException;
+import com.medreminder.callservice.exception.CallNotFoundException;
+import com.medreminder.callservice.repository.CallAttemptRepository;
 import com.medreminder.callservice.repository.CallLogRepository;
-import com.medreminder.callservice.grpc.PatientServiceClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,7 +18,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.kafka.core.KafkaTemplate;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -25,14 +28,14 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("Call Service Unit Tests")
+@DisplayName("CallService Unit Tests")
 class CallServiceTest {
 
     @Mock
     private CallLogRepository callLogRepository;
 
     @Mock
-    private PatientServiceClient patientServiceClient;
+    private CallAttemptRepository callAttemptRepository;
 
     @Mock
     private KafkaTemplate<String, Object> kafkaTemplate;
@@ -40,10 +43,10 @@ class CallServiceTest {
     @InjectMocks
     private CallService callService;
 
-    private CallLog testCallLog;
     private UUID callId;
     private UUID patientId;
     private UUID scheduleId;
+    private CallLog callLog;
 
     @BeforeEach
     void setUp() {
@@ -51,145 +54,90 @@ class CallServiceTest {
         patientId = UUID.randomUUID();
         scheduleId = UUID.randomUUID();
 
-        testCallLog = CallLog.builder()
-                .callId(callId)
-                .patientId(patientId)
-                .scheduleId(scheduleId)
-                .callInitiatedTime(LocalDateTime.now())
-                .callStatus("INITIATED")
-                .responseReceived(false)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
+        callLog = new CallLog();
+        callLog.setCallId(callId);
+        callLog.setPatientId(patientId);
+        callLog.setScheduleId(scheduleId);
+        callLog.setCallStatus("INITIATED");
+        callLog.setCallInitiatedAt(LocalDateTime.now());
     }
 
     @Test
     @DisplayName("Should initiate call successfully")
     void testInitiateCall_Success() {
-        // Arrange
-        when(patientServiceClient.getCaregiverPhone(patientId)).thenReturn("+1234567890");
-        when(callLogRepository.save(any(CallLog.class))).thenReturn(testCallLog);
+        InitiateCallRequest request = new InitiateCallRequest();
+        request.setPatientId(patientId);
+        request.setScheduleId(scheduleId);
 
-        // Act
-        CallLog result = callService.initiateCall(patientId, scheduleId, "+1234567890");
+        when(callLogRepository.save(any(CallLog.class))).thenReturn(callLog);
 
-        // Assert
-        assertThat(result).isNotNull();
-        assertThat(result.getCallId()).isEqualTo(callId);
-        assertThat(result.getCallStatus()).isEqualTo("INITIATED");
+        CallLogResponse response = callService.initiateCall(request);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getCallId()).isEqualTo(callId);
+        assertThat(response.getPatientId()).isEqualTo(patientId);
+        assertThat(response.getScheduleId()).isEqualTo(scheduleId);
+        assertThat(response.getCallStatus()).isEqualTo("INITIATED");
+
         verify(callLogRepository, times(1)).save(any(CallLog.class));
-    }
-
-    @Test
-    @DisplayName("Should throw exception for invalid phone number")
-    void testInitiateCall_InvalidPhone() {
-        // Act & Assert
-        assertThatThrownBy(() -> callService.initiateCall(patientId, scheduleId, null))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Phone number cannot be null");
-    }
-
-    @Test
-    @DisplayName("Should retrieve call log successfully")
-    void testGetCallLog_Success() {
-        // Arrange
-        when(callLogRepository.findById(callId)).thenReturn(Optional.of(testCallLog));
-
-        // Act
-        CallLog result = callService.getCallLog(callId);
-
-        // Assert
-        assertThat(result).isNotNull();
-        assertThat(result.getCallId()).isEqualTo(callId);
-        verify(callLogRepository, times(1)).findById(callId);
-    }
-
-    @Test
-    @DisplayName("Should throw ResourceNotFoundException when call log not found")
-    void testGetCallLog_NotFound() {
-        // Arrange
-        when(callLogRepository.findById(callId)).thenReturn(Optional.empty());
-
-        // Act & Assert
-        assertThatThrownBy(() -> callService.getCallLog(callId))
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessageContaining("Call log not found with ID: " + callId);
+        verify(callAttemptRepository, times(1)).save(any(CallAttempt.class));
     }
 
     @Test
     @DisplayName("Should update call response successfully")
     void testUpdateCallResponse_Success() {
-        // Arrange
-        when(callLogRepository.findById(callId)).thenReturn(Optional.of(testCallLog));
+        UpdateCallResponseRequest request = new UpdateCallResponseRequest();
+        request.setCallId(callId);
+        request.setCallStatus("COMPLETED");
+        request.setIvrResponse("1");
+        request.setCallDurationSeconds(30);
+
+        when(callLogRepository.findById(callId)).thenReturn(Optional.of(callLog));
         when(callLogRepository.save(any(CallLog.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        // Act
-        CallLog result = callService.updateCallResponse(callId, true, "TAKEN");
+        CallLogResponse response = callService.updateCallResponse(callId, request);
 
-        // Assert
-        assertThat(result).isNotNull();
-        assertThat(result.isResponseReceived()).isTrue();
-        assertThat(result.getCallStatus()).isEqualTo("COMPLETED");
+        assertThat(response).isNotNull();
+        assertThat(response.getCallStatus()).isEqualTo("COMPLETED");
+        assertThat(response.getIvrResponse()).isEqualTo("1");
+        assertThat(response.getCallDurationSeconds()).isEqualTo(30);
+
         verify(callLogRepository, times(1)).findById(callId);
         verify(callLogRepository, times(1)).save(any(CallLog.class));
     }
 
     @Test
-    @DisplayName("Should retry failed call successfully")
-    void testRetryCall_Success() {
-        // Arrange
-        CallLog failedCall = CallLog.builder()
-                .callId(callId)
-                .patientId(patientId)
-                .scheduleId(scheduleId)
-                .callStatus("FAILED")
-                .responseReceived(false)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
+    @DisplayName("Should throw CallNotFoundException when updating non-existent call")
+    void testUpdateCallResponse_NotFound() {
+        UpdateCallResponseRequest request = new UpdateCallResponseRequest();
+        request.setCallId(callId);
 
-        when(callLogRepository.findById(callId)).thenReturn(Optional.of(failedCall));
-        when(callLogRepository.save(any(CallLog.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(callLogRepository.findById(callId)).thenReturn(Optional.empty());
 
-        // Act
-        CallLog result = callService.retryCall(callId);
-
-        // Assert
-        assertThat(result).isNotNull();
-        assertThat(result.getCallStatus()).isEqualTo("INITIATED");
-        verify(callLogRepository, times(1)).findById(callId);
-        verify(callLogRepository, times(1)).save(any(CallLog.class));
+        assertThatThrownBy(() -> callService.updateCallResponse(callId, request))
+                .isInstanceOf(CallNotFoundException.class)
+                .hasMessageContaining("Call log not found");
     }
 
     @Test
-    @DisplayName("Should record call attempt successfully")
-    void testRecordCallAttempt_Success() {
-        // Arrange
-        when(callLogRepository.findById(callId)).thenReturn(Optional.of(testCallLog));
-        when(callLogRepository.save(any(CallLog.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    @DisplayName("Should retrieve call log by ID")
+    void testGetCallLog_Success() {
+        when(callLogRepository.findById(callId)).thenReturn(Optional.of(callLog));
 
-        // Act
-        CallLog result = callService.recordCallAttempt(callId, 1, "SUCCESS");
+        CallLogResponse response = callService.getCallLog(callId);
 
-        // Assert
-        assertThat(result).isNotNull();
-        verify(callLogRepository, times(1)).findById(callId);
-        verify(callLogRepository, times(1)).save(any(CallLog.class));
+        assertThat(response).isNotNull();
+        assertThat(response.getCallId()).isEqualTo(callId);
     }
 
     @Test
-    @DisplayName("Should retrieve all call logs successfully")
-    void testGetAllCallLogs_Success() {
-        // Arrange
-        List<CallLog> callLogs = Arrays.asList(testCallLog);
-        when(callLogRepository.findAll()).thenReturn(callLogs);
+    @DisplayName("Should retrieve patient call history")
+    void testGetPatientCallHistory() {
+        when(callLogRepository.findByPatientId(patientId)).thenReturn(List.of(callLog));
 
-        // Act
-        List<CallLog> result = callService.getAllCallLogs();
+        List<CallLogResponse> history = callService.getPatientCallHistory(patientId);
 
-        // Assert
-        assertThat(result).isNotNull();
-        assertThat(result).hasSize(1);
-        verify(callLogRepository, times(1)).findAll();
+        assertThat(history).hasSize(1);
+        assertThat(history.get(0).getPatientId()).isEqualTo(patientId);
     }
 }

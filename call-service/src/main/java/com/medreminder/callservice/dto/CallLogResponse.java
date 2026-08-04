@@ -19,4 +19,5 @@ public class CallLogResponse {
     private Integer callDurationSeconds;
     private LocalDateTime callInitiatedAt;
     private LocalDateTime callAnsweredAt;
+    private LocalDateTime callEndedAt;
 }
