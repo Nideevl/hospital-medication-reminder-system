@@ -1,43 +1,47 @@
 package com.medreminder.notificationservice.service;
 
-import com.medreminder.common.util.Constants;
+import com.medreminder.common.dto.MedicationDueEvent;
+import com.medreminder.notificationservice.dto.NotificationResponse;
+import com.medreminder.notificationservice.dto.SendNotificationRequest;
 import com.medreminder.notificationservice.entity.Notification;
 import com.medreminder.notificationservice.repository.NotificationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("Notification Service Unit Tests with RabbitMQ")
 class NotificationServiceTest {
 
     @Mock
     private NotificationRepository notificationRepository;
 
     @Mock
-    private RabbitTemplate rabbitTemplate;
+    private EmailService emailService;
+
+    @Mock
+    private SmsService smsService;
 
     @InjectMocks
     private NotificationService notificationService;
 
-    private Notification testNotification;
     private UUID notificationId;
     private UUID patientId;
+    private Notification testNotification;
 
     @BeforeEach
     void setUp() {
@@ -50,8 +54,8 @@ class NotificationServiceTest {
                 .notificationType("EMAIL")
                 .recipient("patient@example.com")
                 .subject("Medication Reminder")
-                .message("Time to take your medication")
-                .status("PENDING")
+                .body("Time to take your medication")
+                .status("SENT")
                 .retryCount(0)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
@@ -61,125 +65,117 @@ class NotificationServiceTest {
     @Test
     @DisplayName("Should send email notification successfully")
     void testSendEmailNotification_Success() {
-        // Arrange
-        when(notificationRepository.save(any(Notification.class))).thenReturn(testNotification);
-        doNothing().when(rabbitTemplate).convertAndSend(eq(Constants.RABBITMQ_EMAIL_QUEUE), any());
+        SendNotificationRequest request = SendNotificationRequest.builder()
+                .patientId(patientId)
+                .notificationType("EMAIL")
+                .recipient("patient@example.com")
+                .subject("Medication Reminder")
+                .body("Time to take your medication")
+                .build();
 
-        // Act
-        Notification result = notificationService.sendEmailNotification(
-                patientId, "patient@example.com", "Subject", "Message body");
+        when(emailService.sendEmail(anyString(), anyString(), anyString())).thenReturn(true);
+        when(notificationRepository.save(any(Notification.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        // Assert
-        assertThat(result).isNotNull();
-        assertThat(result.getNotificationType()).isEqualTo("EMAIL");
-        assertThat(result.getStatus()).isEqualTo("SENT");
-        
-        verify(rabbitTemplate, times(1))
-                .convertAndSend(eq(Constants.RABBITMQ_EMAIL_QUEUE), any());
-        verify(notificationRepository, times(2)).save(any(Notification.class));
+        NotificationResponse response = notificationService.sendNotification(request);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getNotificationType()).isEqualTo("EMAIL");
+        assertThat(response.getStatus()).isEqualTo("SENT");
+
+        verify(emailService, times(1)).sendEmail("patient@example.com", "Medication Reminder", "Time to take your medication");
+        verify(notificationRepository, times(1)).save(any(Notification.class));
     }
 
     @Test
     @DisplayName("Should send SMS notification successfully")
     void testSendSmsNotification_Success() {
-        // Arrange
-        when(notificationRepository.save(any(Notification.class))).thenReturn(testNotification);
-        doNothing().when(rabbitTemplate).convertAndSend(eq(Constants.RABBITMQ_SMS_QUEUE), any());
+        SendNotificationRequest request = SendNotificationRequest.builder()
+                .patientId(patientId)
+                .notificationType("SMS")
+                .recipient("+1234567890")
+                .subject("SMS Reminder")
+                .body("Take pill")
+                .build();
 
-        // Act
-        Notification result = notificationService.sendSmsNotification(
-                patientId, "+1234567890", "SMS message");
+        when(smsService.sendSms(anyString(), anyString())).thenReturn(true);
+        when(notificationRepository.save(any(Notification.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        // Assert
-        assertThat(result).isNotNull();
-        assertThat(result.getNotificationType()).isEqualTo("SMS");
-        assertThat(result.getStatus()).isEqualTo("SENT");
-        
-        verify(rabbitTemplate, times(1))
-                .convertAndSend(eq(Constants.RABBITMQ_SMS_QUEUE), any());
-        verify(notificationRepository, times(2)).save(any(Notification.class));
+        NotificationResponse response = notificationService.sendNotification(request);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getNotificationType()).isEqualTo("SMS");
+        assertThat(response.getStatus()).isEqualTo("SENT");
+
+        verify(smsService, times(1)).sendSms("+1234567890", "Take pill");
+        verify(notificationRepository, times(1)).save(any(Notification.class));
     }
 
     @Test
-    @DisplayName("Should send both email and SMS notifications")
-    void testSendNotification_BothChannels() {
-        // Arrange
-        when(notificationRepository.save(any(Notification.class))).thenReturn(testNotification);
-        doNothing().when(rabbitTemplate).convertAndSend(anyString(), any());
-
-        // Act
-        notificationService.sendNotification(patientId, "patient@example.com", "+1234567890", "Test message");
-
-        // Assert
-        verify(rabbitTemplate, times(1))
-                .convertAndSend(eq(Constants.RABBITMQ_EMAIL_QUEUE), any());
-        verify(rabbitTemplate, times(1))
-                .convertAndSend(eq(Constants.RABBITMQ_SMS_QUEUE), any());
-        verify(notificationRepository, atLeast(2)).save(any(Notification.class));
-    }
-
-    @Test
-    @DisplayName("Should retry failed notification successfully")
-    void testRetryFailedNotification_Success() {
-        // Arrange
-        Notification failedNotification = Notification.builder()
-                .notificationId(notificationId)
+    @DisplayName("Should mark notification FAILED when email service fails")
+    void testSendEmailNotification_Failure() {
+        SendNotificationRequest request = SendNotificationRequest.builder()
                 .patientId(patientId)
                 .notificationType("EMAIL")
                 .recipient("patient@example.com")
-                .status("FAILED")
-                .retryCount(2)
-                .errorMessage("Connection timeout")
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
+                .subject("Medication Reminder")
+                .body("Time to take your medication")
                 .build();
 
-        when(notificationRepository.findById(notificationId))
-                .thenReturn(Optional.of(failedNotification));
-        when(notificationRepository.save(any(Notification.class)))
-                .thenReturn(failedNotification);
-        doNothing().when(rabbitTemplate).convertAndSend(eq(Constants.RABBITMQ_EMAIL_QUEUE), any());
+        when(emailService.sendEmail(anyString(), anyString(), anyString())).thenReturn(false);
+        when(notificationRepository.save(any(Notification.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        // Act
-        Notification result = notificationService.retryNotification(notificationId);
+        NotificationResponse response = notificationService.sendNotification(request);
 
-        // Assert
-        assertThat(result).isNotNull();
-        assertThat(result.getRetryCount()).isEqualTo(3);
-        assertThat(result.getStatus()).isEqualTo("PENDING");
-        verify(notificationRepository, times(1)).findById(notificationId);
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo("FAILED");
         verify(notificationRepository, times(1)).save(any(Notification.class));
     }
 
     @Test
-    @DisplayName("Should publish to RabbitMQ queue correctly")
-    void testPublishToRabbitMQ_Success() {
-        // Arrange
-        ArgumentCaptor<Object> messageCaptor = ArgumentCaptor.forClass(Object.class);
-        doNothing().when(rabbitTemplate).convertAndSend(eq(Constants.RABBITMQ_EMAIL_QUEUE), messageCaptor.capture());
+    @DisplayName("Should handle medication-due event from Kafka")
+    void testHandleMedicationDueEvent() {
+        UUID medId = UUID.randomUUID();
+        MedicationDueEvent event = MedicationDueEvent.builder()
+                .patientId(patientId)
+                .medicationId(medId)
+                .scheduledTime(java.time.LocalTime.of(8, 0))
+                .build();
 
-        // Act
-        notificationService.publishToRabbitMQ(testNotification, Constants.RABBITMQ_EMAIL_QUEUE);
+        when(smsService.sendSms(anyString(), anyString())).thenReturn(true);
+        when(notificationRepository.save(any(Notification.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        // Assert
-        verify(rabbitTemplate, times(1))
-                .convertAndSend(eq(Constants.RABBITMQ_EMAIL_QUEUE), any());
-        
-        Object sentMessage = messageCaptor.getValue();
-        assertThat(sentMessage).isNotNull();
+        notificationService.handleMedicationDueEvent(event);
+
+        verify(notificationRepository, times(1)).save(any(Notification.class));
     }
 
     @Test
-    @DisplayName("Should handle RabbitMQ publish failure gracefully")
-    void testPublishToRabbitMQ_Failure() {
-        // Arrange
-        doThrow(new RuntimeException("RabbitMQ connection failed"))
-                .when(rabbitTemplate).convertAndSend(eq(Constants.RABBITMQ_EMAIL_QUEUE), any());
+    @DisplayName("Should retrieve notification by ID")
+    void testGetNotification_Success() {
+        when(notificationRepository.findById(notificationId)).thenReturn(Optional.of(testNotification));
 
-        // Act
-        notificationService.publishToRabbitMQ(testNotification, Constants.RABBITMQ_EMAIL_QUEUE);
+        NotificationResponse response = notificationService.getNotification(notificationId);
 
-        // Assert - Should not throw, status should be FAILED
-        verify(notificationRepository, times(1)).save(any(Notification.class));
+        assertThat(response).isNotNull();
+        assertThat(response.getNotificationId()).isEqualTo(notificationId);
+    }
+
+    @Test
+    @DisplayName("Should throw when getting non-existent notification")
+    void testGetNotification_NotFound() {
+        when(notificationRepository.findById(notificationId)).thenReturn(Optional.empty());
+
+        assertThrows(IllegalArgumentException.class, () -> notificationService.getNotification(notificationId));
+    }
+
+    @Test
+    @DisplayName("Should retrieve patient notifications")
+    void testGetPatientNotifications() {
+        when(notificationRepository.findByPatientId(patientId)).thenReturn(List.of(testNotification));
+
+        List<NotificationResponse> responses = notificationService.getPatientNotifications(patientId);
+
+        assertThat(responses).hasSize(1);
+        assertThat(responses.get(0).getPatientId()).isEqualTo(patientId);
     }
 }
