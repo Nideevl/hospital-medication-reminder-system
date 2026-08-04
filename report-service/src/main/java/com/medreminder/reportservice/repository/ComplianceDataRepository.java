@@ -5,15 +5,18 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
 public interface ComplianceDataRepository extends JpaRepository<ComplianceData, UUID> {
 
-    List<ComplianceData> findByPatientIdOrderByReportDateDesc(UUID patientId);
+    List<ComplianceData> findByPatientIdOrderByCreatedAtDesc(UUID patientId);
 
-    @Query("SELECT cd FROM ComplianceData cd WHERE cd.patientId = ?1 AND cd.reportDate >= ?2 AND cd.reportDate <= ?3")
-    List<ComplianceData> findComplianceInDateRange(UUID patientId, LocalDate fromDate, LocalDate toDate);
+    Optional<ComplianceData> findByPatientIdAndWeekNumber(UUID patientId, Integer weekNumber);
+
+    @Query("SELECT cd FROM ComplianceData cd WHERE cd.patientId = ?1 AND cd.createdAt >= ?2 AND cd.createdAt <= ?3")
+    List<ComplianceData> findComplianceInDateRange(UUID patientId, LocalDateTime fromDate, LocalDateTime toDate);
 }

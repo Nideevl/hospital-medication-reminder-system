@@ -1,7 +1,7 @@
 package com.medreminder.reportservice.config;
 
-import com.medreminder.patientservice.grpc.PatientServiceGrpc;
-import com.medreminder.scheduleservice.grpc.ScheduleServiceGrpc;
+import com.medreminder.common.grpc.PatientServiceGrpc;
+import com.medreminder.common.grpc.ScheduleServiceGrpc;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import org.springframework.context.annotation.Bean;

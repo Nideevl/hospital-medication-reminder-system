@@ -78,7 +78,7 @@ public class ReportService {
     }
 
     public List<ComplianceData> getPatientComplianceData(UUID patientId) {
-        return complianceDataRepository.findByPatientIdOrderByReportDateDesc(patientId);
+        return complianceDataRepository.findByPatientIdOrderByCreatedAtDesc(patientId);
     }
 
     private int calculateTotalScheduled(UUID patientId, LocalDateTime startDate, LocalDateTime endDate) {

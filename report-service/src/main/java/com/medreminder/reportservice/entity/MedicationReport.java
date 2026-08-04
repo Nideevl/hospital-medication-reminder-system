@@ -2,58 +2,83 @@ package com.medreminder.reportservice.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 @Entity
 @Table(name = "medication_reports")
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class MedicationReport {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private UUID id;
+
     private UUID reportId;
-
-    @Column(nullable = false)
     private UUID patientId;
-
-    @Column(nullable = false)
     private String reportType;
+    private LocalDate reportDate;
+    private LocalDate startDate;
+    private LocalDate endDate;
 
-    @Column(nullable = false)
-    private LocalDateTime startDate;
+    private int totalMedicationsScheduled;
+    private int totalScheduled;
+    private int medicationsTaken;
+    private int totalTaken;
+    private int medicationsMissed;
+    private int totalMissed;
 
-    @Column(nullable = false)
-    private LocalDateTime endDate;
+    private double adherencePercentage;
+    private BigDecimal compliancePercentage;
 
-    @Column(nullable = false)
-    private Integer totalScheduled;
-
-    @Column(nullable = false)
-    private Integer totalTaken;
-
-    @Column(nullable = false)
-    private Integer totalMissed;
-
-    @Column
-    private Double compliancePercentage;
-
-    @Column(columnDefinition = "TEXT")
+    private String reportStatus;
+    private String generatedBy;
     private String summary;
 
-    @CreationTimestamp
-    @Column(updatable = false)
+    private LocalDateTime createdAt;
     private LocalDateTime generatedAt;
 
-    @Column
-    private String generatedBy;
+    public void setStartDate(LocalDateTime dateTime) {
+        this.startDate = dateTime != null ? dateTime.toLocalDate() : null;
+    }
 
-    @Column
-    private String reportStatus;
+    public void setStartDate(LocalDate date) {
+        this.startDate = date;
+    }
+
+    public void setEndDate(LocalDateTime dateTime) {
+        this.endDate = dateTime != null ? dateTime.toLocalDate() : null;
+    }
+
+    public void setEndDate(LocalDate date) {
+        this.endDate = date;
+    }
+
+    public Double getCompliancePercentage() {
+        if (compliancePercentage != null) {
+            return compliancePercentage.doubleValue();
+        }
+        return adherencePercentage;
+    }
+
+    public void setCompliancePercentage(double value) {
+        this.compliancePercentage = BigDecimal.valueOf(value);
+        this.adherencePercentage = value;
+    }
+
+    public void setCompliancePercentage(BigDecimal value) {
+        this.compliancePercentage = value;
+        if (value != null) {
+            this.adherencePercentage = value.doubleValue();
+        }
+    }
 }

@@ -2,41 +2,56 @@ package com.medreminder.reportservice.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 @Entity
 @Table(name = "compliance_data")
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ComplianceData {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID complianceId;
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private UUID id;
 
-    @Column(nullable = false)
     private UUID patientId;
+    private int weekNumber;
+    @Column(name = "\"month\"")
+    private int month;
+    private double adherenceScore;
+    private int missedDoses;
+    private int escalationsTriggered;
+    private LocalDateTime createdAt;
 
-    @Column(nullable = false)
-    private LocalDate reportDate;
+    public void setAdherenceScore(BigDecimal value) {
+        if (value != null) {
+            this.adherenceScore = value.doubleValue();
+        }
+    }
 
-    @Column(nullable = false)
-    private Integer medicationsScheduled;
+    public void setAdherenceScore(double value) {
+        this.adherenceScore = value;
+    }
 
-    @Column(nullable = false)
-    private Integer medicationsTaken;
+    public void setWeekNumber(String week) {
+        if (week != null) {
+            try {
+                this.weekNumber = Integer.parseInt(week);
+            } catch (NumberFormatException e) {
+                this.weekNumber = 0;
+            }
+        }
+    }
 
-    @Column(nullable = false)
-    private Integer medicationsMissed;
-
-    @Column
-    private Double dailyCompliancePercentage;
-
-    @Column
-    private String notes;
+    public void setWeekNumber(int week) {
+        this.weekNumber = week;
+    }
 }

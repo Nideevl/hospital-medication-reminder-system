@@ -12,8 +12,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.support.KafkaHeaders;
-import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
@@ -26,11 +24,6 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Kafka Consumer for Report Service.
- * Listens for medication-due, call-response-received, and dose-missed events
- * to build compliance reports.
- */
 @Component
 public class EventConsumer {
 
@@ -41,17 +34,21 @@ public class EventConsumer {
 
     @Autowired
     public EventConsumer(MedicationReportRepository medicationReportRepository,
-                         ComplianceDataRepository complianceDataRepository) {
+                           ComplianceDataRepository complianceDataRepository) {
         this.medicationReportRepository = medicationReportRepository;
         this.complianceDataRepository = complianceDataRepository;
     }
 
-    /**
-     * Handles medication-due events from Kafka.
-     * Updates medication report with scheduled medications count.
-     *
-     * @param event MedicationDueEvent from Kafka
-     */
+    private UUID parsePatientId(Object rawPatientId) {
+        if (rawPatientId == null) {
+            return null;
+        }
+        if (rawPatientId instanceof UUID) {
+            return (UUID) rawPatientId;
+        }
+        return UUID.fromString(rawPatientId.toString());
+    }
+
     @KafkaListener(
         topics = Constants.KAFKA_TOPIC_MEDICATION_DUE,
         groupId = "report-service-group",
@@ -62,15 +59,13 @@ public class EventConsumer {
                 event.getPatientId(), event.getMedicationId(), event.getScheduledTime());
 
         try {
-            UUID patientId = UUID.fromString(event.getPatientId());
+            UUID patientId = parsePatientId(event.getPatientId());
             LocalDate reportDate = LocalDate.now();
 
-            // Get or create medication report for today
             MedicationReport report = medicationReportRepository
                     .findByPatientIdAndReportDate(patientId, reportDate)
                     .orElseGet(() -> createNewReport(patientId, reportDate));
 
-            // Increment total scheduled medications
             report.setTotalMedicationsScheduled(report.getTotalMedicationsScheduled() + 1);
             updateAdherencePercentage(report);
             
@@ -85,12 +80,6 @@ public class EventConsumer {
         }
     }
 
-    /**
-     * Handles call-response-received events from Kafka.
-     * Updates medication report with taken medications count.
-     *
-     * @param event CallResponseEvent from Kafka
-     */
     @KafkaListener(
         topics = Constants.KAFKA_TOPIC_CALL_RESPONSE,
         groupId = "report-service-group",
@@ -101,21 +90,18 @@ public class EventConsumer {
                 event.getPatientId(), event.isResponseReceived());
 
         try {
-            UUID patientId = UUID.fromString(event.getPatientId());
+            UUID patientId = parsePatientId(event.getPatientId());
             LocalDate reportDate = LocalDate.now();
 
-            // Get or create medication report for today
             MedicationReport report = medicationReportRepository
                     .findByPatientIdAndReportDate(patientId, reportDate)
                     .orElseGet(() -> createNewReport(patientId, reportDate));
 
-            // Update taken count if response was received
             if (event.isResponseReceived()) {
                 report.setMedicationsTaken(report.getMedicationsTaken() + 1);
                 updateAdherencePercentage(report);
                 medicationReportRepository.save(report);
 
-                // Update compliance data for the week/month
                 updateComplianceData(patientId, reportDate, true);
             }
 
@@ -128,12 +114,6 @@ public class EventConsumer {
         }
     }
 
-    /**
-     * Handles dose-missed events from Kafka.
-     * Updates medication report with missed medications count.
-     *
-     * @param event DoseMissedEvent from Kafka
-     */
     @KafkaListener(
         topics = Constants.KAFKA_TOPIC_DOSE_MISSED,
         groupId = "report-service-group",
@@ -144,20 +124,17 @@ public class EventConsumer {
                 event.getPatientId(), event.getScheduleId(), event.getMissedTime());
 
         try {
-            UUID patientId = UUID.fromString(event.getPatientId());
+            UUID patientId = parsePatientId(event.getPatientId());
             LocalDate reportDate = LocalDate.now();
 
-            // Get or create medication report for today
             MedicationReport report = medicationReportRepository
                     .findByPatientIdAndReportDate(patientId, reportDate)
                     .orElseGet(() -> createNewReport(patientId, reportDate));
 
-            // Increment missed medications
             report.setMedicationsMissed(report.getMedicationsMissed() + 1);
             updateAdherencePercentage(report);
             medicationReportRepository.save(report);
 
-            // Update compliance data for the week/month with missed dose
             updateComplianceData(patientId, reportDate, false);
 
             log.info("Successfully processed dose-missed event for patientId: {}, missed: {}",
@@ -169,13 +146,6 @@ public class EventConsumer {
         }
     }
 
-    /**
-     * Creates a new MedicationReport for a patient for a specific date.
-     *
-     * @param patientId UUID of patient
-     * @param reportDate Date for the report
-     * @return New MedicationReport entity
-     */
     private MedicationReport createNewReport(UUID patientId, LocalDate reportDate) {
         MedicationReport report = new MedicationReport();
         report.setPatientId(patientId);
@@ -183,23 +153,15 @@ public class EventConsumer {
         report.setTotalMedicationsScheduled(0);
         report.setMedicationsTaken(0);
         report.setMedicationsMissed(0);
-        report.setAdherencePercentage(BigDecimal.ZERO);
+        report.setAdherencePercentage(0.0);
         report.setCreatedAt(LocalDateTime.now());
         return report;
     }
 
-    /**
-     * Updates compliance data for a patient for the current week and month.
-     *
-     * @param patientId UUID of patient
-     * @param date Date for compliance data
-     * @param doseTaken Whether the dose was taken
-     */
     private void updateComplianceData(UUID patientId, LocalDate date, boolean doseTaken) {
         try {
-            // Update weekly compliance
             int weekNumber = date.get(WeekFields.of(Locale.getDefault()).weekOfWeekBasedYear());
-            String month = date.getMonth().toString();
+            int monthNumber = date.getMonthValue();
 
             Optional<ComplianceData> existingWeekly = complianceDataRepository
                     .findByPatientIdAndWeekNumber(patientId, weekNumber);
@@ -211,8 +173,8 @@ public class EventConsumer {
                 compliance = new ComplianceData();
                 compliance.setPatientId(patientId);
                 compliance.setWeekNumber(weekNumber);
-                compliance.setMonth(month);
-                compliance.setAdherenceScore(BigDecimal.ZERO);
+                compliance.setMonth(monthNumber);
+                compliance.setAdherenceScore(0.0);
                 compliance.setMissedDoses(0);
                 compliance.setEscalationsTriggered(0);
                 compliance.setCreatedAt(LocalDateTime.now());
@@ -222,7 +184,6 @@ public class EventConsumer {
                 compliance.setMissedDoses(compliance.getMissedDoses() + 1);
             }
 
-            // Recalculate adherence score
             MedicationReport report = medicationReportRepository
                     .findByPatientIdAndReportDate(patientId, date)
                     .orElse(null);
@@ -231,15 +192,16 @@ public class EventConsumer {
                 int total = report.getTotalMedicationsScheduled();
                 int taken = report.getMedicationsTaken();
                 if (total > 0) {
-                    BigDecimal score = BigDecimal.valueOf((double) taken / total * 100)
-                            .setScale(2, RoundingMode.HALF_UP);
+                    double score = BigDecimal.valueOf((double) taken / total * 100)
+                            .setScale(2, RoundingMode.HALF_UP)
+                            .doubleValue();
                     compliance.setAdherenceScore(score);
                 }
             }
 
             complianceDataRepository.save(compliance);
             log.debug("Updated compliance data for patientId: {}, week: {}, month: {}",
-                    patientId, weekNumber, month);
+                    patientId, weekNumber, monthNumber);
 
         } catch (Exception e) {
             log.error("Error updating compliance data for patientId: {}, error: {}",
@@ -247,21 +209,17 @@ public class EventConsumer {
         }
     }
 
-    /**
-     * Updates the adherence percentage for a medication report.
-     *
-     * @param report MedicationReport to update
-     */
     private void updateAdherencePercentage(MedicationReport report) {
         int total = report.getTotalMedicationsScheduled();
         int taken = report.getMedicationsTaken();
         
         if (total > 0) {
-            BigDecimal percentage = BigDecimal.valueOf((double) taken / total * 100)
-                    .setScale(2, RoundingMode.HALF_UP);
+            double percentage = BigDecimal.valueOf((double) taken / total * 100)
+                    .setScale(2, RoundingMode.HALF_UP)
+                    .doubleValue();
             report.setAdherencePercentage(percentage);
         } else {
-            report.setAdherencePercentage(BigDecimal.ZERO);
+            report.setAdherencePercentage(0.0);
         }
     }
 }
