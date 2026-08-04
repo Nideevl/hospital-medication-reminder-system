@@ -7,8 +7,8 @@ public final class Constants {
     }
 
     // Kafka Topics
+    public static final String KAFKA_TOPIC_CALL_RESPONSE = "call-response-topic";
     public static final String KAFKA_TOPIC_MEDICATION_DUE = "medication-due";
-    public static final String KAFKA_TOPIC_CALL_RESPONSE_RECEIVED = "call-response-received";
     public static final String KAFKA_TOPIC_DOSE_MISSED = "dose-missed";
 
     // Kafka Partitions & Replication

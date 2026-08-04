@@ -3,6 +3,7 @@ syntax = "proto3";
 package com.medreminder.common.grpc;
 
 option java_package = "com.medreminder.common.grpc";
+option java_multiple_files = true; // ADDED: Ensures classes like GetPatientRequest generate in their own files
 option java_outer_classname = "PatientServiceProto";
 
 // ============ PATIENT SERVICE ============

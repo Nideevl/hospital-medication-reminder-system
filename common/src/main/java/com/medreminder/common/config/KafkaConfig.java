@@ -32,7 +32,7 @@ public class KafkaConfig {
     @Bean
     public NewTopic callResponseReceivedTopic() {
         return new NewTopic(
-                Constants.KAFKA_TOPIC_CALL_RESPONSE_RECEIVED,
+                Constants.KAFKA_TOPIC_CALL_RESPONSE,
                 Constants.KAFKA_PARTITION_COUNT_MEDICATION_DUE,
                 Constants.KAFKA_REPLICATION_FACTOR
         );
