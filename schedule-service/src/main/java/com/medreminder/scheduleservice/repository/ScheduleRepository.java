@@ -14,6 +14,10 @@ import java.util.UUID;
 public interface ScheduleRepository extends JpaRepository<Schedule, UUID> {
     List<Schedule> findByPatientId(UUID patientId);
     List<Schedule> findByPatientIdAndActive(UUID patientId, Boolean active);
+
     @Query("SELECT s FROM Schedule s WHERE s.patientId = :patientId AND s.startDate <= :date AND (s.endDate IS NULL OR s.endDate >= :date) AND s.active = true")
     List<Schedule> findSchedulesForToday(@Param("patientId") UUID patientId, @Param("date") LocalDate date);
+
+    @Query("SELECT s FROM Schedule s WHERE s.patientId = :patientId AND s.startDate <= :date AND (s.endDate IS NULL OR s.endDate >= :date) AND s.active = true")
+    List<Schedule> findByPatientIdAndDate(@Param("patientId") UUID patientId, @Param("date") LocalDate date);
 }

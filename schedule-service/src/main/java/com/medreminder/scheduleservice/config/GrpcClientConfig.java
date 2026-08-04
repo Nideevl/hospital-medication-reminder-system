@@ -1,6 +1,7 @@
 package com.medreminder.scheduleservice.config;
 
-import com.medreminder.patientservice.grpc.PatientServiceGrpc;
+// FIXED IMPORT: Pointing to the common module instead of patientservice
+import com.medreminder.common.grpc.PatientServiceGrpc; 
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import org.springframework.context.annotation.Bean;

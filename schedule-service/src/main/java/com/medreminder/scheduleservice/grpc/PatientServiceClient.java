@@ -1,7 +1,11 @@
 package com.medreminder.scheduleservice.grpc;
 
-import com.medreminder.patientservice.grpc.PatientServiceGrpc;
-import com.medreminder.patientservice.grpc.PatientServiceOuterClass.*;
+// UPDATED IMPORTS
+import com.medreminder.common.grpc.GetCaregiverPhoneRequest;
+import com.medreminder.common.grpc.GetCaregiverPhoneResponse;
+import com.medreminder.common.grpc.GetPatientRequest;
+import com.medreminder.common.grpc.PatientInfo;
+import com.medreminder.common.grpc.PatientServiceGrpc;
 import io.grpc.StatusRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,10 +36,10 @@ public class PatientServiceClient {
      * Fetches patient details by patient ID.
      *
      * @param patientId UUID of the patient
-     * @return PatientResponse containing patient details
+     * @return PatientInfo containing patient details (Updated return type)
      * @throws StatusRuntimeException if gRPC call fails
      */
-    public PatientResponse getPatientById(UUID patientId) {
+    public PatientInfo getPatientById(UUID patientId) {
         log.debug("Fetching patient details for patientId: {}", patientId);
 
         try {
@@ -43,7 +47,8 @@ public class PatientServiceClient {
                     .setPatientId(patientId.toString())
                     .build();
 
-            PatientResponse response = patientServiceStub
+            // Updated response type to match proto
+            PatientInfo response = patientServiceStub
                     .withDeadlineAfter(TIMEOUT_SECONDS, TimeUnit.SECONDS)
                     .getPatientById(request);
 
@@ -76,7 +81,8 @@ public class PatientServiceClient {
                     .withDeadlineAfter(TIMEOUT_SECONDS, TimeUnit.SECONDS)
                     .getCaregiverPhone(request);
 
-            String phone = response.getPhone();
+            // Updated to getCaregiverPhone() to match the proto property name
+            String phone = response.getCaregiverPhone(); 
             log.debug("Successfully fetched caregiver phone for patientId: {}", patientId);
             return phone;
 

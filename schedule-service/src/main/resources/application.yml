@@ -30,6 +30,15 @@ spring:
       retries: 3
       properties:
         linger.ms: 10
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      group-id: schedule-service-group
+      auto-offset-reset: earliest
+      max-poll-records: 500
+      properties:
+        spring.json.trusted.packages: "*"
+        spring.json.value.default.type: com.medreminder.common.dto.CallResponseEvent
     topics:
       medication-due: medication-due
       call-response-received: call-response-received
@@ -43,7 +52,7 @@ logging:
   level:
     root: INFO
     com.medreminder: DEBUG
-    org.springframework.kafka: INFO
+    org.springframework.kafka: DEBUG
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 
