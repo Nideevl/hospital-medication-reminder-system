@@ -54,13 +54,13 @@ public class Patient {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    @Transient
+    @Column(name = "address", length = 255)
     private String address;
 
-    @Transient
+    @Column(name = "date_of_birth", length = 20)
     private String dateOfBirth;
 
-    // --- ALIAS GETTERS AND SETTERS --- //
+// --- ALIAS GETTERS AND SETTERS --- //
 
     public String getName() {
         if (firstName == null && lastName == null) return null;
@@ -105,6 +105,7 @@ public class Patient {
     // --- CUSTOM BUILDER METHODS FOR TEST COMPATIBILITY --- //
 
     public static class PatientBuilder {
+
         public PatientBuilder name(String name) {
             if (name != null && !name.isBlank()) {
                 String[] parts = name.trim().split("\\s+", 2);
