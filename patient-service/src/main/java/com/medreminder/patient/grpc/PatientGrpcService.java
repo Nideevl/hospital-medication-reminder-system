@@ -1,7 +1,7 @@
 package com.medreminder.patient.grpc;
 
-import com.medreminder.common.grpc.PatientServiceProto.GetPatientRequest;
-import com.medreminder.common.grpc.PatientServiceProto.PatientInfo;
+import com.medreminder.common.grpc.GetPatientRequest;
+import com.medreminder.common.grpc.PatientInfo;
 import com.medreminder.common.grpc.PatientServiceGrpc;
 import com.medreminder.patient.entity.Patient;
 import com.medreminder.patient.service.PatientService;
@@ -21,7 +21,7 @@ public class PatientGrpcService extends PatientServiceGrpc.PatientServiceImplBas
     private PatientService patientService;
 
     @Override
-    public void getPatientById(GetPatientRequest request, StreamObserver<PatientInfo> responseObserver) { // 👈 Renamed here
+    public void getPatientById(GetPatientRequest request, StreamObserver<PatientInfo> responseObserver) {
         try {
             log.info("gRPC: Fetching patient with ID: {}", request.getPatientId());
             UUID patientId = UUID.fromString(request.getPatientId());
@@ -29,12 +29,12 @@ public class PatientGrpcService extends PatientServiceGrpc.PatientServiceImplBas
             
             PatientInfo patientInfo = PatientInfo.newBuilder()
                     .setPatientId(patient.getPatientId().toString())
-                    .setFirstName(patient.getFirstName())
-                    .setLastName(patient.getLastName())
-                    .setEmail(patient.getEmail())
-                    .setPhoneNumber(patient.getPhoneNumber())
-                    .setMedicalRecordNumber(patient.getMedicalRecordNumber())
-                    .setActive(patient.getActive())
+                    .setFirstName(patient.getFirstName() != null ? patient.getFirstName() : "")
+                    .setLastName(patient.getLastName() != null ? patient.getLastName() : "")
+                    .setEmail(patient.getEmail() != null ? patient.getEmail() : "")
+                    .setPhoneNumber(patient.getPhoneNumber() != null ? patient.getPhoneNumber() : "")
+                    .setMedicalRecordNumber(patient.getMedicalRecordNumber() != null ? patient.getMedicalRecordNumber() : "")
+                    .setActive(patient.getActive() != null ? patient.getActive() : false)
                     .setLocation("hospital")
                     .build();
             
