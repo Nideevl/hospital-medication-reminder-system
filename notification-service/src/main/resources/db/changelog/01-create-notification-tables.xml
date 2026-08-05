@@ -22,17 +22,17 @@
                 <constraints nullable="false"/>
             </column>
             <column name="subject" type="VARCHAR(255)"/>
-            <column name="message" type="TEXT">
+            <column name="body" type="TEXT">
                 <constraints nullable="false"/>
             </column>
             <column name="status" type="VARCHAR(50)">
                 <constraints nullable="false"/>
             </column>
-            <column name="sent_time" type="TIMESTAMP"/>
+            <column name="sent_at" type="TIMESTAMP"/>
             <column name="retry_count" type="INT" defaultValue="0">
                 <constraints nullable="false"/>
             </column>
-            <column name="error_message" type="TEXT"/>
+            <column name="failure_reason" type="TEXT"/>
             <column name="created_at" type="TIMESTAMP" defaultValueComputed="NOW()">
                 <constraints nullable="false"/>
             </column>
@@ -52,22 +52,18 @@
             <column name="status"/>
         </createIndex>
 
-        <!-- Add foreign key constraints -->
-        <addForeignKeyConstraint baseTableName="notifications"
-                                 baseColumnNames="patient_id"
-                                 constraintName="fk_notifications_patient"
-                                 referencedTableName="patients"
-                                 referencedColumnNames="patient_id"
-                                 onDelete="CASCADE"/>
+        <!-- Standard SQL Check Constraints -->
+        <sql>
+            ALTER TABLE notifications 
+            ADD CONSTRAINT chk_notifications_type 
+            CHECK (notification_type IN ('EMAIL', 'SMS', 'CALL'));
+        </sql>
 
-        <!-- Add CHECK constraints -->
-        <addCheckConstraint tableName="notifications"
-                            constraintName="chk_notifications_type"
-                            checkCondition="notification_type IN (EMAIL, SMS, CALL)"/>
-
-        <addCheckConstraint tableName="notifications"
-                            constraintName="chk_notifications_status"
-                            checkCondition="status IN (PENDING, SENT, FAILED)"/>
+        <sql>
+            ALTER TABLE notifications 
+            ADD CONSTRAINT chk_notifications_status 
+            CHECK (status IN ('PENDING', 'SENT', 'FAILED'));
+        </sql>
 
     </changeSet>
 </databaseChangeLog>
