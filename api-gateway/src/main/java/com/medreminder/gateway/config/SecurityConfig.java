@@ -10,7 +10,6 @@ import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.reactive.CorsConfigurationSource;
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
-import org.springframework.web.server.WebFilter;
 
 import java.util.Arrays;
 
@@ -27,14 +26,15 @@ public class SecurityConfig {
     @Bean
     public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
         return http
-            .csrf(csrf -> csrf.disable())
+            .csrf(ServerHttpSecurity.CsrfSpec::disable)
+            .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
+            .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeExchange(exchange -> exchange
-                .pathMatchers("/api/auth/**").permitAll()
-                .pathMatchers("/api/**").authenticated()
-                .anyExchange().permitAll()
+                .pathMatchers("/api/auth/**", "/actuator/**").permitAll()
+                .anyExchange().permitAll() // JwtAuthenticationFilter enforces validation
             )
-            .addFilterAt((WebFilter) jwtAuthenticationFilter, SecurityWebFiltersOrder.AUTHENTICATION)
+            .addFilterAt(jwtAuthenticationFilter, SecurityWebFiltersOrder.AUTHENTICATION)
             .build();
     }
 

@@ -18,16 +18,20 @@
             <column name="schedule_id" type="UUID">
                 <constraints nullable="false"/>
             </column>
-            <column name="call_initiated_time" type="TIMESTAMP">
-                <constraints nullable="false"/>
-            </column>
-            <column name="call_ended_time" type="TIMESTAMP"/>
             <column name="call_status" type="VARCHAR(50)">
                 <constraints nullable="false"/>
             </column>
+            <column name="ivr_response" type="VARCHAR(255)"/>
+            <column name="call_duration_seconds" type="INT"/>
             <column name="response_received" type="BOOLEAN" defaultValue="false">
                 <constraints nullable="false"/>
             </column>
+            <column name="attempt_notes" type="VARCHAR(255)"/>
+            <column name="call_initiated_at" type="TIMESTAMP" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="call_answered_at" type="TIMESTAMP"/>
+            <column name="call_ended_at" type="TIMESTAMP"/>
             <column name="created_at" type="TIMESTAMP" defaultValueComputed="NOW()">
                 <constraints nullable="false"/>
             </column>
@@ -47,15 +51,17 @@
             <column name="attempt_number" type="INT">
                 <constraints nullable="false"/>
             </column>
-            <column name="attempt_time" type="TIMESTAMP">
-                <constraints nullable="false"/>
-            </column>
             <column name="status" type="VARCHAR(50)">
                 <constraints nullable="false"/>
             </column>
+            <column name="response_code" type="VARCHAR(50)"/>
             <column name="retry_count" type="INT" defaultValue="0">
                 <constraints nullable="false"/>
             </column>
+            <column name="attempted_at" type="TIMESTAMP" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="responded_at" type="TIMESTAMP"/>
             <column name="created_at" type="TIMESTAMP" defaultValueComputed="NOW()">
                 <constraints nullable="false"/>
             </column>
@@ -80,20 +86,6 @@
         </createIndex>
 
         <!-- Add foreign key constraints -->
-        <addForeignKeyConstraint baseTableName="call_logs"
-                                 baseColumnNames="patient_id"
-                                 constraintName="fk_call_logs_patient"
-                                 referencedTableName="patients"
-                                 referencedColumnNames="patient_id"
-                                 onDelete="CASCADE"/>
-
-        <addForeignKeyConstraint baseTableName="call_logs"
-                                 baseColumnNames="schedule_id"
-                                 constraintName="fk_call_logs_schedule"
-                                 referencedTableName="schedules"
-                                 referencedColumnNames="schedule_id"
-                                 onDelete="CASCADE"/>
-
         <addForeignKeyConstraint baseTableName="call_attempts"
                                  baseColumnNames="call_id"
                                  constraintName="fk_call_attempts_call"
@@ -101,14 +93,18 @@
                                  referencedColumnNames="call_id"
                                  onDelete="CASCADE"/>
 
-        <!-- Add CHECK constraints for enum-like fields -->
-        <addCheckConstraint tableName="call_logs"
-                            constraintName="chk_call_logs_status"
-                            checkCondition="call_status IN (INITIATED, IN_PROGRESS, COMPLETED, FAILED)"/>
+        <!-- Standard SQL Check Constraints -->
+        <sql>
+            ALTER TABLE call_logs 
+            ADD CONSTRAINT chk_call_logs_status 
+            CHECK (call_status IN ('INITIATED', 'IN_PROGRESS', 'COMPLETED', 'FAILED'));
+        </sql>
 
-        <addCheckConstraint tableName="call_attempts"
-                            constraintName="chk_call_attempts_status"
-                            checkCondition="status IN (PENDING, SUCCESS, FAILED)"/>
+        <sql>
+            ALTER TABLE call_attempts 
+            ADD CONSTRAINT chk_call_attempts_status 
+            CHECK (status IN ('PENDING', 'SUCCESS', 'FAILED'));
+        </sql>
 
     </changeSet>
 </databaseChangeLog>

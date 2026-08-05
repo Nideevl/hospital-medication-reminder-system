@@ -1,26 +1,23 @@
 spring:
   application:
     name: call-service
-  
-  server:
-    port: 8083
-  
+
   datasource:
     url: jdbc:postgresql://localhost:5432/med_reminder
     username: postgres
     password: postgres
     driver-class-name: org.postgresql.Driver
-  
+
   jpa:
     hibernate:
       ddl-auto: validate
     show-sql: false
     database-platform: org.hibernate.dialect.PostgreSQLDialect
-  
+
   liquibase:
     enabled: true
-    change-log: classpath:db/changelog/db.changelog-call-service-master.xml
-  
+    change-log: classpath:db/changelog/db.changelog-call.xml
+
   kafka:
     bootstrap-servers: localhost:9092
     producer:
@@ -36,6 +33,9 @@ spring:
       properties:
         spring.json.type.mapping: |
           callResponseEvent:com.medreminder.common.dto.CallResponseEvent
+
+server:
+  port: 8083
 
 grpc:
   server:
@@ -64,8 +64,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus
-  metrics:
-    export:
-      prometheus:
-        enabled: true
+        include: health, info, metrics
+  endpoint:
+    health:
+      show-details: always

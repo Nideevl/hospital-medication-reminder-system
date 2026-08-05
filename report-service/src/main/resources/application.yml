@@ -2,9 +2,6 @@ spring:
   application:
     name: report-service
   
-  server:
-    port: 8086
-  
   datasource:
     url: jdbc:postgresql://localhost:5432/med_reminder
     username: postgres
@@ -15,12 +12,11 @@ spring:
     hibernate:
       ddl-auto: validate
     show-sql: false
-    database-platform: org.hibernate.dialect.PostgreSQL10Dialect
   
   liquibase:
     enabled: true
-    change-log: classpath:db/changelog/db.changelog-master.xml
-  
+    change-log: classpath:db/changelog/db.changelog-report.xml
+
   kafka:
     bootstrap-servers: localhost:9092
     consumer:
@@ -28,10 +24,11 @@ spring:
       auto-offset-reset: earliest
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
-        spring.json.type.mapping: |
-          medicationDueEvent:com.medreminder.common.dto.MedicationDueEvent
-          callResponseEvent:com.medreminder.common.dto.CallResponseEvent
-          doseMissedEvent:com.medreminder.common.dto.DoseMissedEvent
+        spring.json.trusted.packages: "*"
+        spring.json.type.mapping: "medicationDueEvent:com.medreminder.common.dto.MedicationDueEvent,callResponseEvent:com.medreminder.common.dto.CallResponseEvent,doseMissedEvent:com.medreminder.common.dto.DoseMissedEvent"
+
+server:
+  port: 8086
 
 grpc:
   client:

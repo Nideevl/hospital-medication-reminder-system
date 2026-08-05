@@ -18,24 +18,32 @@ public class CallAttempt {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "attempt_id", nullable = false, updatable = false)
     private UUID attemptId;
 
-    @Column(nullable = false)
+    @Column(name = "call_id", nullable = false)
     private UUID callId;
 
-    @Column(nullable = false)
+    @Column(name = "attempt_number", nullable = false)
     private Integer attemptNumber;
 
-    @Column(nullable = false)
+    @Column(name = "status", nullable = false)
     private String status;
 
+    @Column(name = "response_code")
+    private String responseCode;
+
+    @Column(name = "retry_count", nullable = false)
+    private Integer retryCount = 0;
+
     @CreationTimestamp
-    @Column(updatable = false)
+    @Column(name = "attempted_at", nullable = false, updatable = false)
     private LocalDateTime attemptedAt;
 
-    @Column
+    @Column(name = "responded_at")
     private LocalDateTime respondedAt;
 
-    @Column
-    private String responseCode;
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 }
