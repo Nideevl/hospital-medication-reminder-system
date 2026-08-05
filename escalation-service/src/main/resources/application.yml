@@ -2,9 +2,6 @@ spring:
   application:
     name: escalation-service
   
-  server:
-    port: 8084
-  
   datasource:
     url: jdbc:postgresql://localhost:5432/med_reminder
     username: postgres
@@ -15,11 +12,11 @@ spring:
     hibernate:
       ddl-auto: validate
     show-sql: false
-    database-platform: org.hibernate.dialect.PostgreSQL10Dialect
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
   
   liquibase:
     enabled: true
-    change-log: classpath:db/changelog/db.changelog-master.xml
+    change-log: classpath:db/changelog/db.changelog-escalation.xml
   
   kafka:
     bootstrap-servers: localhost:9092
@@ -38,6 +35,10 @@ spring:
     password: guest
     virtual-host: /
 
+# Moved out of 'spring:' section to root level
+server:
+  port: 8084
+
 logging:
   level:
     root: INFO
@@ -50,8 +51,12 @@ logging:
 management:
   endpoints:
     web:
+      base-path: /actuator
       exposure:
         include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
   metrics:
     export:
       prometheus:

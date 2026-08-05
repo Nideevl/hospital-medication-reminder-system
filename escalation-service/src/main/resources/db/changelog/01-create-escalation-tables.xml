@@ -21,21 +21,21 @@
             <column name="escalation_type" type="VARCHAR(50)">
                 <constraints nullable="false"/>
             </column>
-            <column name="escalation_level" type="INT">
+            <column name="escalation_level" type="INT" defaultValue="1">
                 <constraints nullable="false"/>
             </column>
-            <column name="escalated_to" type="VARCHAR(255)">
-                <constraints nullable="false"/>
-            </column>
-            <column name="escalation_time" type="TIMESTAMP">
-                <constraints nullable="false"/>
-            </column>
-            <column name="resolved_time" type="TIMESTAMP"/>
+            <column name="escalated_to" type="VARCHAR(255)"/>
+            <column name="caregiver_phone_number" type="VARCHAR(50)"/>
             <column name="status" type="VARCHAR(50)">
                 <constraints nullable="false"/>
             </column>
-            <column name="outcome" type="VARCHAR(255)"/>
-            <column name="notes" type="TEXT"/>
+            <column name="escalation_notes" type="TEXT"/>
+            <column name="triggered_at" type="TIMESTAMP" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="notified_at" type="TIMESTAMP"/>
+            <column name="escalation_time" type="TIMESTAMP"/>
+            <column name="resolved_at" type="TIMESTAMP"/>
             <column name="created_at" type="TIMESTAMP" defaultValueComputed="NOW()">
                 <constraints nullable="false"/>
             </column>
@@ -58,33 +58,24 @@
             <column name="status"/>
         </createIndex>
 
-        <!-- Add foreign key constraints -->
-        <addForeignKeyConstraint baseTableName="escalations"
-                                 baseColumnNames="patient_id"
-                                 constraintName="fk_escalations_patient"
-                                 referencedTableName="patients"
-                                 referencedColumnNames="patient_id"
-                                 onDelete="CASCADE"/>
+        <!-- Standard SQL Check Constraints -->
+        <sql>
+            ALTER TABLE escalations 
+            ADD CONSTRAINT chk_escalations_type 
+            CHECK (escalation_type IN ('DOSE_MISSED', 'NO_RESPONSE'));
+        </sql>
 
-        <addForeignKeyConstraint baseTableName="escalations"
-                                 baseColumnNames="schedule_id"
-                                 constraintName="fk_escalations_schedule"
-                                 referencedTableName="schedules"
-                                 referencedColumnNames="schedule_id"
-                                 onDelete="CASCADE"/>
+        <sql>
+            ALTER TABLE escalations 
+            ADD CONSTRAINT chk_escalations_level 
+            CHECK (escalation_level BETWEEN 1 AND 3);
+        </sql>
 
-        <!-- Add CHECK constraints -->
-        <addCheckConstraint tableName="escalations"
-                            constraintName="chk_escalations_type"
-                            checkCondition="escalation_type IN (DOSE_MISSED, NO_RESPONSE)"/>
-
-        <addCheckConstraint tableName="escalations"
-                            constraintName="chk_escalations_level"
-                            checkCondition="escalation_level BETWEEN 1 AND 3"/>
-
-        <addCheckConstraint tableName="escalations"
-                            constraintName="chk_escalations_status"
-                            checkCondition="status IN (PENDING, IN_PROGRESS, RESOLVED)"/>
+        <sql>
+            ALTER TABLE escalations 
+            ADD CONSTRAINT chk_escalations_status 
+            CHECK (status IN ('PENDING', 'IN_PROGRESS', 'RESOLVED'));
+        </sql>
 
     </changeSet>
 </databaseChangeLog>
