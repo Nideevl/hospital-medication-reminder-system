@@ -15,18 +15,23 @@
             <column name="patient_id" type="UUID">
                 <constraints nullable="false"/>
             </column>
-            <column name="medication_id" type="UUID">
+            <column name="schedule_id" type="UUID">
                 <constraints nullable="false"/>
             </column>
-            <column name="action_type" type="VARCHAR(50)">
+            <column name="medication_name" type="VARCHAR(255)">
                 <constraints nullable="false"/>
             </column>
-            <column name="action_time" type="TIMESTAMP">
+            <column name="action" type="VARCHAR(50)">
                 <constraints nullable="false"/>
             </column>
-            <column name="action_details" type="JSONB"/>
-            <column name="user_id" type="VARCHAR(100)"/>
-            <column name="ip_address" type="VARCHAR(45)"/>
+            <column name="status" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="scheduled_time" type="TIMESTAMP"/>
+            <column name="actual_time" type="TIMESTAMP"/>
+            <column name="delay_minutes" type="BIGINT"/>
+            <column name="notes" type="TEXT"/>
+            <column name="recorded_by" type="VARCHAR(100)"/>
             <column name="created_at" type="TIMESTAMP" defaultValueComputed="NOW()">
                 <constraints nullable="false"/>
             </column>
@@ -34,27 +39,25 @@
 
         <!-- Create user_actions table -->
         <createTable tableName="user_actions">
-            <column name="user_action_id" type="UUID">
+            <column name="action_id" type="UUID">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
-            <column name="user_id" type="VARCHAR(100)">
+            <column name="user_id" type="UUID">
                 <constraints nullable="false"/>
             </column>
             <column name="action_type" type="VARCHAR(50)">
                 <constraints nullable="false"/>
             </column>
-            <column name="target_entity" type="VARCHAR(100)">
+            <column name="entity" type="VARCHAR(100)">
                 <constraints nullable="false"/>
             </column>
-            <column name="target_entity_id" type="VARCHAR(100)">
+            <column name="entity_id" type="UUID">
                 <constraints nullable="false"/>
             </column>
-            <column name="details" type="TEXT"/>
-            <column name="ip_address" type="VARCHAR(45)">
-                <constraints nullable="false"/>
-            </column>
+            <column name="change_details" type="TEXT"/>
+            <column name="ip_address" type="VARCHAR(45)"/>
             <column name="user_agent" type="VARCHAR(255)"/>
-            <column name="created_at" type="TIMESTAMP" defaultValueComputed="NOW()">
+            <column name="timestamp" type="TIMESTAMP" defaultValueComputed="NOW()">
                 <constraints nullable="false"/>
             </column>
         </createTable>
@@ -63,11 +66,8 @@
         <createIndex tableName="medication_audits" indexName="idx_medication_audits_patient_id">
             <column name="patient_id"/>
         </createIndex>
-        <createIndex tableName="medication_audits" indexName="idx_medication_audits_action_type">
-            <column name="action_type"/>
-        </createIndex>
-        <createIndex tableName="medication_audits" indexName="idx_medication_audits_action_time">
-            <column name="action_time"/>
+        <createIndex tableName="medication_audits" indexName="idx_medication_audits_created_at">
+            <column name="created_at"/>
         </createIndex>
 
         <createIndex tableName="user_actions" indexName="idx_user_actions_user_id">
@@ -76,33 +76,19 @@
         <createIndex tableName="user_actions" indexName="idx_user_actions_action_type">
             <column name="action_type"/>
         </createIndex>
-        <createIndex tableName="user_actions" indexName="idx_user_actions_created_at">
-            <column name="created_at"/>
-        </createIndex>
 
-        <!-- Add foreign key constraints -->
-        <addForeignKeyConstraint baseTableName="medication_audits"
-                                 baseColumnNames="patient_id"
-                                 constraintName="fk_medication_audits_patient"
-                                 referencedTableName="patients"
-                                 referencedColumnNames="patient_id"
-                                 onDelete="CASCADE"/>
+        <!-- Check Constraints using standard SQL -->
+        <sql>
+            ALTER TABLE medication_audits 
+            ADD CONSTRAINT chk_medication_audits_action 
+            CHECK (action IN ('CREATED', 'UPDATED', 'DELETED', 'TAKEN', 'MISSED'));
+        </sql>
 
-        <addForeignKeyConstraint baseTableName="medication_audits"
-                                 baseColumnNames="medication_id"
-                                 constraintName="fk_medication_audits_medication"
-                                 referencedTableName="medications"
-                                 referencedColumnNames="medication_id"
-                                 onDelete="CASCADE"/>
-
-        <!-- Add CHECK constraints -->
-        <addCheckConstraint tableName="medication_audits"
-                            constraintName="chk_medication_audits_action"
-                            checkCondition="action_type IN (CREATED, UPDATED, DELETED, TAKEN, MISSED)"/>
-
-        <addCheckConstraint tableName="user_actions"
-                            constraintName="chk_user_actions_action"
-                            checkCondition="action_type IN (LOGIN, SCHEDULE_CREATED, ESCALATION_TRIGGERED, REPORT_GENERATED)"/>
+        <sql>
+            ALTER TABLE user_actions 
+            ADD CONSTRAINT chk_user_actions_action 
+            CHECK (action_type IN ('LOGIN', 'SCHEDULE_CREATED', 'ESCALATION_TRIGGERED', 'REPORT_GENERATED'));
+        </sql>
 
     </changeSet>
 </databaseChangeLog>

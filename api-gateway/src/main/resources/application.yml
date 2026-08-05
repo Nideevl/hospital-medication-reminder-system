@@ -2,68 +2,58 @@ spring:
   application:
     name: api-gateway
   
-  server:
-    port: 8080
-    servlet:
-      context-path: /api
-  
+  data:
+    redis:
+      host: redis
+      port: 6379
+      timeout: 2000ms
+
   cloud:
     gateway:
       routes:
         - id: patient-service
-          uri: http://localhost:8081
+          uri: http://patient-service:8081
           predicates:
             - Path=/patients/**
-          filters:
-            - StripPrefix=0
         
         - id: schedule-service
-          uri: http://localhost:8082
+          uri: http://schedule-service:8082
           predicates:
             - Path=/schedules/**
         
         - id: call-service
-          uri: http://localhost:8083
+          uri: http://call-service:8083
           predicates:
             - Path=/calls/**
         
         - id: escalation-service
-          uri: http://localhost:8084
+          uri: http://escalation-service:8084
           predicates:
             - Path=/escalations/**
         
         - id: notification-service
-          uri: http://localhost:8085
+          uri: http://notification-service:8085
           predicates:
             - Path=/notifications/**
         
         - id: report-service
-          uri: http://localhost:8086
+          uri: http://report-service:8086
           predicates:
             - Path=/reports/**
         
         - id: audit-service
-          uri: http://localhost:8087
+          uri: http://audit-service:8087
           predicates:
             - Path=/audits/**
-  
-  security:
-    filter:
-      order: 5
-  
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    show-sql: false
-    properties:
-      hibernate:
-        format_sql: true
+
+server:
+  port: 8080
 
 logging:
   level:
     root: INFO
     com.medreminder: DEBUG
-    org.springframework.security: DEBUG
+    org.springframework.cloud.gateway: DEBUG
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
 
@@ -75,7 +65,3 @@ management:
   endpoint:
     health:
       show-details: always
-  metrics:
-    export:
-      prometheus:
-        enabled: true

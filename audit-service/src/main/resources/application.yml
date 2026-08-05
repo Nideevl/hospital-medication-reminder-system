@@ -2,9 +2,6 @@ spring:
   application:
     name: audit-service
   
-  server:
-    port: 8087
-  
   datasource:
     url: jdbc:postgresql://localhost:5432/med_reminder
     username: postgres
@@ -15,7 +12,7 @@ spring:
     hibernate:
       ddl-auto: validate
     show-sql: false
-    database-platform: org.hibernate.dialect.PostgreSQL10Dialect
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
   
   liquibase:
     enabled: true
@@ -28,10 +25,10 @@ spring:
       auto-offset-reset: earliest
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
-        spring.json.type.mapping: |
-          medicationDueEvent:com.medreminder.common.dto.MedicationDueEvent
-          callResponseEvent:com.medreminder.common.dto.CallResponseEvent
-          doseMissedEvent:com.medreminder.common.dto.DoseMissedEvent
+        spring.json.type.mapping: medicationDueEvent:com.medreminder.common.dto.MedicationDueEvent,callResponseEvent:com.medreminder.common.dto.CallResponseEvent,doseMissedEvent:com.medreminder.common.dto.DoseMissedEvent
+
+server:
+  port: 8087
 
 logging:
   level:
@@ -44,8 +41,12 @@ logging:
 management:
   endpoints:
     web:
+      base-path: /actuator
       exposure:
         include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
   metrics:
     export:
       prometheus:
